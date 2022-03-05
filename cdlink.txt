@@ -1,0 +1,7 @@
+binary ./out.bin
+name MyTest
+maker BugoTheCat
+makerid BTC
+date 20220130
+country 1
+version 256
