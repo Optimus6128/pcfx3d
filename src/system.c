@@ -1,15 +1,8 @@
-#include <eris/v810.h>
-#include <eris/king.h>
-#include <eris/tetsu.h>
-#include <eris/romfont.h>
-#include <eris/timer.h>
-#include <eris/cd.h>
-#include <eris/low/pad.h>
-#include <eris/low/scsi.h>
-
 #include <math.h>
+#include <stdlib.h>
 
 #include "main.h"
+#include "system.h"
 #include "fastking.h"
 
 
@@ -78,6 +71,21 @@ void initTimer()
 	irq_enable();
 }
 
+int getFps()
+{
+	static int fps = 0;
+	static int prev_sec = 0;
+	static int prev_nframe = 0;
+
+	const int curr_sec = zda_timer_count / 60;
+	if (curr_sec != prev_sec) {
+		fps = nframe - prev_nframe;
+		prev_sec = curr_sec;
+		prev_nframe = nframe;
+	}
+	return fps;
+}
+
 void vsync()
 {
 	while(eris_tetsu_get_raster() !=200) {};
@@ -87,6 +95,12 @@ Screen *initDisplay(int width, int height, int bpp)
 {
 	int i;
 	u16 microprog[16];
+
+	Screen *screen = malloc(sizeof(Screen));
+	screen->width = width;
+	screen->height = height;
+	screen->bpp = bpp;
+	screen->data = malloc((width * height * bpp) >> 3);
 
 	eris_king_init();
 	eris_tetsu_init();
@@ -130,19 +144,6 @@ Screen *initDisplay(int width, int height, int bpp)
 		eris_king_kram_write(0);
 	}
 	eris_king_set_kram_write(0, 1);
-}
 
-int getFps()
-{
-	static int fps = 0;
-	static int prev_sec = 0;
-	static int prev_nframe = 0;
-
-	const int curr_sec = zda_timer_count / 60;
-	if (curr_sec != prev_sec) {
-		fps = nframe - prev_nframe;
-		prev_sec = curr_sec;
-		prev_nframe = nframe;
-	}
-	return fps;
+	return screen;
 }

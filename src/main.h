@@ -1,9 +1,16 @@
 #ifndef MAIN_H
 #define MAIN_H
 
-#include "types.h"
+#include <eris/v810.h>
+#include <eris/king.h>
+#include <eris/tetsu.h>
+#include <eris/romfont.h>
+#include <eris/timer.h>
+#include <eris/cd.h>
+#include <eris/low/pad.h>
+#include <eris/low/scsi.h>
 
-#define _8BPP
+#include "types.h"
 
 #define SCREEN_WIDTH 256
 #define SCREEN_HEIGHT 256

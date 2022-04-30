@@ -14,24 +14,24 @@
 1110 0010 1110 1110 0010 1110 1110 0010 1110 1110
 */
 
-static const unsigned char miniDecimalData[] = { 0xE2, 0xEE, 0xAE, 0xEE, 0xEE,
+static const uint8 miniDecimalData[] = { 0xE2, 0xEE, 0xAE, 0xEE, 0xEE,
 0xA2, 0x22, 0xA8, 0x82, 0xAA,
 0xA2, 0xE6, 0xEE, 0xE2, 0xEE,
 0xA2, 0x82, 0x22, 0xA2, 0xA2,
 0xE2, 0xEE, 0x2E, 0xE2, 0xEE };
 
-static unsigned short miniDecimalFonts[TINY_FONT_NUM_PIXELS];
+static uint16 miniDecimalFonts[TINY_FONT_NUM_PIXELS];
 
 void initTinyFonts()
 {
-	static unsigned char miniDecimalPixels[TINY_FONT_NUM_PIXELS];
+	static uint8 miniDecimalPixels[TINY_FONT_NUM_PIXELS];
 	int i,j,k=0;
 	int x,y,n;
 
 	for (i = 0; i < TINY_FONT_NUM_PIXELS / 8; i++) {
-		unsigned char d = miniDecimalData[i];
+		uint8 d = miniDecimalData[i];
 		for (j = 0; j < 8; j++) {
-			unsigned char c = (d & 0x80) >> 7;
+			uint8 c = (d & 0x80) >> 7;
 			miniDecimalPixels[k++] = c;
 			d <<= 1;
 		}
@@ -56,18 +56,17 @@ static void setKramPos(int posX, int posY)
 	#endif
 }
 
-static void drawFont(int posX, int posY, unsigned char decimal)
+static void drawFont(int posX, int posY, uint8 decimal)
 {
 	int x, y;
-	unsigned char c0,c1;
-    unsigned short *fontData = &miniDecimalFonts[decimal * TINY_FONT_WIDTH * TINY_FONT_HEIGHT];
+    uint16 *fontData = &miniDecimalFonts[decimal * TINY_FONT_WIDTH * TINY_FONT_HEIGHT];
 
     for (y = 0; y<TINY_FONT_HEIGHT; y++) {
 		setKramPos(posX, posY+y);
 		#ifdef _8BPP
 			for (x = 0; x<TINY_FONT_WIDTH; x+=2) {
-				c0 = *fontData++;
-				c1 = *fontData++;
+				uint8 c0 = *fontData++;
+				uint8 c1 = *fontData++;
 				eris_king_kram_write((c0 << 8) | c1);
 			}
 		#else

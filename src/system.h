@@ -12,7 +12,7 @@ typedef struct Screen
 
 extern int nframe;
 
-Screen *initDisplay(int width, int height, int bpp)
+Screen *initDisplay(int width, int height, int bpp);
 void initTimer();
 void vsync();
 int getFps();
