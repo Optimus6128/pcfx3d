@@ -6,7 +6,9 @@
 #define TINY_FONTS_NUM 10
 #define TINY_FONT_NUM_PIXELS (TINY_FONTS_NUM * TINY_FONT_WIDTH * TINY_FONT_HEIGHT)
 
+#include "system.h"
+
 void initTinyFonts();
-void drawNumber(int posX, int posY, int number);
+void drawNumber(int posX, int posY, int number, Screen *screen);
 
 #endif

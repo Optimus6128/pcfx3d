@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <eris/king.h>
-
 #include "tinyfont.h"
 #include "main.h"
 
@@ -41,51 +39,55 @@ void initTinyFonts()
 	for (n = 0; n < TINY_FONTS_NUM; n++) {
 		for (y = 0; y < TINY_FONT_HEIGHT; y++) {
 			for (x = 0; x < TINY_FONT_WIDTH; x++) {
-				miniDecimalFonts[i++] = miniDecimalPixels[n * TINY_FONT_WIDTH + x + y * TINY_FONT_WIDTH * TINY_FONTS_NUM] * 0x1010;
+				miniDecimalFonts[i++] = miniDecimalPixels[n * TINY_FONT_WIDTH + x + y * TINY_FONT_WIDTH * TINY_FONTS_NUM] * 0x8080;
 			}
 		}
 	}
 }
 
-static void setKramPos(int posX, int posY)
-{
-	#ifdef _8BPP
-		eris_king_set_kram_write((posY * SCREEN_WIDTH + posX)>>1, 1);	// will not be correct if posX is odd (but we will remember to use even numbers for now)
-	#else
-		eris_king_set_kram_write(posY * SCREEN_WIDTH + posX, 1);
-	#endif
-}
-
-static void drawFont(int posX, int posY, uint8 decimal)
+static void drawFont16(int posX, int posY, uint8 decimal, Screen *screen)
 {
 	int x, y;
+	const int width = screen->width;
     uint16 *fontData = &miniDecimalFonts[decimal * TINY_FONT_WIDTH * TINY_FONT_HEIGHT];
+	uint16 *dst = (uint16*)screen->data + posY * width + posX;
 
     for (y = 0; y<TINY_FONT_HEIGHT; y++) {
-		setKramPos(posX, posY+y);
-		#ifdef _8BPP
-			for (x = 0; x<TINY_FONT_WIDTH; x+=2) {
-				uint8 c0 = *fontData++;
-				uint8 c1 = *fontData++;
-				eris_king_kram_write((c0 << 8) | c1);
-			}
-		#else
-			for (x = 0; x<TINY_FONT_WIDTH; ++x) {
-				eris_king_kram_write(*fontData++);
-			}
-		#endif
+		for (x = 0; x<TINY_FONT_WIDTH; ++x) {
+			*(dst+x) = *fontData++;
+		}
+		dst += width;
     }
 }
 
-void drawNumber(int posX, int posY, int number)
+static void drawFont8(int posX, int posY, uint8 decimal, Screen *screen)
+{
+	int x, y;
+	const int width = screen->width;
+    uint16 *fontData = &miniDecimalFonts[decimal * TINY_FONT_WIDTH * TINY_FONT_HEIGHT];
+	uint8 *dst = (uint8*)screen->data + posY * width + posX;
+
+    for (y = 0; y<TINY_FONT_HEIGHT; y++) {
+		for (x = 0; x<TINY_FONT_WIDTH; ++x) {
+			*(dst+x) = (uint8)*fontData++;
+		}
+		dst += width;
+    }
+}
+
+void drawNumber(int posX, int posY, int number, Screen *screen)
 {
     static char buffer[10];
 	int i = 0;
-
 	sprintf(buffer, "%d", number);
 
 	while(i < 10 && buffer[i] != 0) {
-        drawFont(posX + i * TINY_FONT_WIDTH, posY, buffer[i] - 48);
-		i++;
+		const int px = posX + i * TINY_FONT_WIDTH; 
+		const uint8 c = buffer[i++] - 48;
+		if (screen->bpp == 8) {
+			drawFont8(px, posY, c, screen);
+		} else {
+			drawFont16(px, posY, c, screen);
+		}
     }
 }

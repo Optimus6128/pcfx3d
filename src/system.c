@@ -93,14 +93,15 @@ void vsync()
 
 Screen *initDisplay(int width, int height, int bpp)
 {
-	int i;
+	int i, kingBgMode = KING_BGMODE_256_PAL;
 	u16 microprog[16];
+	const int screenSize = (width * height * bpp) >> 3;
 
 	Screen *screen = malloc(sizeof(Screen));
 	screen->width = width;
 	screen->height = height;
 	screen->bpp = bpp;
-	screen->data = malloc((width * height * bpp) >> 3);
+	screen->data = malloc(screenSize);
 
 	eris_king_init();
 	eris_tetsu_init();
@@ -109,14 +110,14 @@ Screen *initDisplay(int width, int height, int bpp)
 	eris_tetsu_set_king_palette(0, 0, 0, 0);
 	eris_tetsu_set_rainbow_palette(0);
 
+	if (bpp > 8) kingBgMode = KING_BGMODE_64K;
 	eris_king_set_bg_prio(KING_BGPRIO_0, KING_BGPRIO_HIDE, KING_BGPRIO_HIDE, KING_BGPRIO_HIDE, 0);
-	eris_king_set_bg_mode(KING_BGMODE_64K, KING_BGPRIO_HIDE, KING_BGPRIO_HIDE, KING_BGPRIO_HIDE);
+	eris_king_set_bg_mode(kingBgMode, KING_BGPRIO_HIDE, KING_BGPRIO_HIDE, KING_BGPRIO_HIDE);
 	eris_king_set_kram_pages(0, 0, 0, 0);
 
 	for(i = 0; i < 16; i++) {
 		microprog[i] = KING_CODE_NOP;
 	}
-
 	microprog[0] = KING_CODE_BG0_CG_0;
 	microprog[1] = KING_CODE_BG0_CG_1;
 	microprog[2] = KING_CODE_BG0_CG_2;
@@ -140,10 +141,23 @@ Screen *initDisplay(int width, int height, int bpp)
 	eris_king_set_kram_read(0, 1);
 	eris_king_set_kram_write(0, 1);
 
-	for(i = 0; i < SCREEN_SIZE_IN_PIXELS; ++i) {
+	for(i = 0; i < screenSize; ++i) {
 		eris_king_kram_write(0);
 	}
 	eris_king_set_kram_write(0, 1);
 
 	return screen;
+}
+
+void writeDisplay(Screen *screen)
+{
+	const int screenSize = (screen->width * screen->height * screen->bpp) >> 3;
+
+	eris_king_set_kram_write(0, 1);
+	
+	if (screen->bpp==8) {
+		king_kram_write_buffer_bytes(screen->data, screenSize);
+	} else {
+		king_kram_write_buffer(screen->data, screenSize);
+	}
 }
