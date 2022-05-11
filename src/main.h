@@ -15,7 +15,4 @@
 #define SCREEN_WIDTH 256
 #define SCREEN_HEIGHT 256
 
-#define CLAMP(value,min,max) if (value<min) value=min; if (value>max) value=max;
-
-
 #endif
