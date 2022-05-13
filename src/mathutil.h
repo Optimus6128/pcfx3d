@@ -6,7 +6,7 @@
 #include <string.h>
 
 #include "types.h"
-
+#include "sintab.h"
 
 #define FP_CORE 16
 #define FP_BASE 12
@@ -21,7 +21,7 @@
 #define FIXED_TO_FLOAT(x,b) ((float)(x) / (1 << b))
 #define FIXED_MUL(x,y,b) (((x) * (y)) >> b)
 #define FIXED_DIV(x,y,b) (((x) << b) / (y))
-#define FIXED_SQRT(x,b) (sqrt((x) << b))
+#define FIXED_SQRT(x,b) (isqrt((x) << b))
 
 #define VEC3D_TO_FIXED(v,b) v.x *= (1 << b); v.y *= (1 << b); v.z *= (1 << b);
 
@@ -32,8 +32,8 @@
 #define PI 3.14159265359f
 #define DEG256RAD ((2 * PI) / 256.0f)
 
-#define SinF16(a) (int)(sin(((double)(a) / 65536.0) * DEG256RAD) * 65536.0)
-#define CosF16(a) (int)(cos(((double)(a) / 65536.0) * DEG256RAD) * 65536.0)
+#define SinF16(a) sineLUT[((a) & ((1 << 24) - 1)) >> (16 - (SINE_LUT_BITS - SINE_DEG_BITS))]
+#define CosF16(a) SinF16((a) + (64 << 16))
 
 #define MakeRGB15(r,g,b) (((uint32)(r)<<10)|((uint32)(g)<<5)|(uint32)(b))
 
@@ -62,6 +62,8 @@ typedef struct Point2Darray
 
 
 extern int shr[257];
+
+int isqrt(int x);
 
 int getRand(int from, int to);
 int getShr(int n);

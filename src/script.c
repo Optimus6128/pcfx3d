@@ -36,7 +36,7 @@ static void effectMeshSoftInit()
 
 	for (i=0; i<numPoints; ++i) {
 		const int y = (size/4) * (numPoints/2 - i);
-		const int r = (int)(sin((float)i / 2.0f) * (size / 2) + size / 2);
+		const int r = ((SinF16((i*20) << 16) * (size / 2)) >> 16) + size / 2;
 		addPoint2D(ptArray, r,y);
 	}
 
