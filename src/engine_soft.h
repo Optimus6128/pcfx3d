@@ -7,7 +7,7 @@
 #include "engine_main.h"
 #include "engine_mesh.h"
 
-#define COLOR_GRADIENTS_SHR 8
+#define COLOR_GRADIENTS_SHR 5
 #define COLOR_ENVMAP_SHR COLOR_GRADIENTS_SHR
 #define COLOR_GRADIENTS_SIZE (1 << COLOR_GRADIENTS_SHR)
 

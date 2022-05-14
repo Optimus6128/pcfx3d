@@ -1,5 +1,6 @@
 #include "script.h"
 #include "tools.h"
+#include "input.h"
 
 #include "mathutil.h"
 
@@ -15,15 +16,20 @@
 static int rotX=0, rotY=0, rotZ=0;
 static int zoom=256;
 
+static const int rotVel = 2;
+static const int zoomVel = 2;
+
 static Mesh *softMesh8;
 static Mesh *softMesh16;
 
-static Texture *cloudTex;
+static Texture *cloudTex8;
+static Texture *cloudTex16;
 static Object3D *softObj;
 
 static int renderSoftMethodIndex = RENDER_SOFT_METHOD_GOURAUD;
 
-static void effectMeshSoftInit()
+ 
+static void effectMeshSoftInit(int bpp)
 {
 	int i;
 	const int numPoints = 8;
@@ -40,15 +46,20 @@ static void effectMeshSoftInit()
 		addPoint2D(ptArray, r,y);
 	}
 
-	cloudTex = initGenTexture(128, 128, 16, NULL, 1, TEXGEN_CLOUDS, false, NULL);
+	cloudTex8 = initGenTexture(128, 128, 8, NULL, 1, TEXGEN_CLOUDS, false, NULL);
+	cloudTex16 = initGenTexture(128, 128, 16, NULL, 1, TEXGEN_CLOUDS, false, NULL);
 	params = makeMeshgenSquareColumnoidParams(size, ptArray->points, numPoints, true, true);
 
-	softMesh8 = initGenMesh(meshType, params, MESH_OPTION_RENDER_SOFT8 | MESH_OPTION_ENABLE_LIGHTING | MESH_OPTION_ENABLE_ENVMAP, cloudTex);
-	softMesh16 = initGenMesh(meshType, params, MESH_OPTION_RENDER_SOFT16 | MESH_OPTION_ENABLE_LIGHTING | MESH_OPTION_ENABLE_ENVMAP, cloudTex);
+	softMesh8 = initGenMesh(meshType, params, MESH_OPTION_RENDER_SOFT8 | MESH_OPTION_ENABLE_LIGHTING | MESH_OPTION_ENABLE_ENVMAP, cloudTex8);
+	softMesh16 = initGenMesh(meshType, params, MESH_OPTION_RENDER_SOFT16 | MESH_OPTION_ENABLE_LIGHTING | MESH_OPTION_ENABLE_ENVMAP, cloudTex16);
 
-	softObj = initObject3D(softMesh8);
-
-	setObject3Dmesh(softObj, softMesh8);
+	if (bpp==8) {
+		softObj = initObject3D(softMesh8);
+		setObject3Dmesh(softObj, softMesh8);
+	} else {
+		softObj = initObject3D(softMesh16);
+		setObject3Dmesh(softObj, softMesh16);
+	}
 
 	destroyPoint2Darray(ptArray);
 
@@ -57,9 +68,50 @@ static void effectMeshSoftInit()
 
 static void inputScript()
 {
-	rotX+=1;
-	rotY+=2;
-	rotZ+=3;
+	//rotX+=1;
+	//rotY+=2;
+	//rotZ+=3;
+
+	updateInput();
+
+	if (isJoyButtonPressed(JOY_LEFT)) {
+		rotY -= rotVel;
+	}
+
+	if (isJoyButtonPressed(JOY_RIGHT)) {
+		rotY += rotVel;
+	}
+
+	if (isJoyButtonPressed(JOY_UP)) {
+		rotX -= rotVel;
+	}
+
+	if (isJoyButtonPressed(JOY_DOWN)) {
+		rotX += rotVel;
+	}
+
+	if (isJoyButtonPressed(JOY_A)) {
+		rotZ += rotVel;
+	}
+
+	if (isJoyButtonPressed(JOY_B)) {
+		rotZ -= rotVel;
+	}
+
+	if (isJoyButtonPressed(JOY_D)) {
+		zoom += zoomVel;
+	}
+
+	if (isJoyButtonPressed(JOY_E)) {
+		zoom -= zoomVel;
+	}
+
+	if (isJoyButtonPressedOnce(JOY_START)) {
+		++renderSoftMethodIndex;
+		if (renderSoftMethodIndex == RENDER_SOFT_METHOD_NUM) renderSoftMethodIndex = 0;
+
+		setRenderSoftMethod(renderSoftMethodIndex);
+	}
 }
 
 static void fastClearScreen(Screen *screen)
@@ -85,11 +137,12 @@ void scriptInit(Screen *screen)
 	if (screen->bpp==8) {
 		int i;
 		for(i = 0; i < 256; i++) {
-			eris_tetsu_set_palette(i, RGB2YUV(i, i, i));
+			const int c = (i & 31) << 3;
+			eris_tetsu_set_palette(i, RGB2YUV(c, c, c));
 		}
 	}
 
-	effectMeshSoftInit();
+	effectMeshSoftInit(screen->bpp);
 }
 
 void scriptRun(Screen *screen, int t)

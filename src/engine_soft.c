@@ -753,6 +753,7 @@ static void fillGouraudEnvmapEdges16(int yMin, int yMax, Screen *screen)
 
 	const int texHeightShift = activeTexture->hShift;
 	uint16* texData = (uint16*)activeTexture->bitmap;
+	int Y;
 
 	do {
 		const int xl = le->x;
@@ -762,7 +763,6 @@ static void fillGouraudEnvmapEdges16(int yMin, int yMax, Screen *screen)
 		const int ur = re->u;
 		const int vl = le->v;
 		const int vr = re->v;
-		int r,g,b;
 		int length = re->x - xl;
 
 		if (length>0){
@@ -781,10 +781,9 @@ static void fillGouraudEnvmapEdges16(int yMin, int yMax, Screen *screen)
 			if (xl & 1) {
 				c = FIXED_TO_INT(fc, FP_BASE);
 				cc = texData[(FIXED_TO_INT(fv, FP_BASE) << texHeightShift) + FIXED_TO_INT(fu, FP_BASE)];
-				r = (((cc >> 10) & 31) * c) >> COLOR_ENVMAP_SHR;
-				g = (((cc >> 5) & 31) * c) >> COLOR_ENVMAP_SHR;
-				b = ((cc  & 31) * c) >> COLOR_ENVMAP_SHR;
-				*dst++ = (r << 10) | (g << 5) | b;
+				//Y = ((cc >> 8) * c) >> COLOR_ENVMAP_SHR;
+				Y = (cc * c) >> COLOR_ENVMAP_SHR;
+				*dst++ = (cc & 0x00FF) | (Y & 0xFF00);
 				fc += dc;
 				fu += du;
 				fv += dv;
@@ -798,20 +797,16 @@ static void fillGouraudEnvmapEdges16(int yMin, int yMax, Screen *screen)
 
 				c = FIXED_TO_INT(fc, FP_BASE);
 				cc = texData[(FIXED_TO_INT(fv, FP_BASE) << texHeightShift) + FIXED_TO_INT(fu, FP_BASE)];
-				r = (((cc >> 10) & 31) * c) >> COLOR_ENVMAP_SHR;
-				g = (((cc >> 5) & 31) * c) >> COLOR_ENVMAP_SHR;
-				b = ((cc  & 31) * c) >> COLOR_ENVMAP_SHR;
-				c0 = (r << 10) | (g << 5) | b;
+				Y = (cc * c) >> COLOR_ENVMAP_SHR;
+				c0 = (cc & 0x00FF) | (Y & 0xFF00);
 				fc += dc;
 				fu += du;
 				fv += dv;
 
 				c = FIXED_TO_INT(fc, FP_BASE);
 				cc = texData[(FIXED_TO_INT(fv, FP_BASE) << texHeightShift) + FIXED_TO_INT(fu, FP_BASE)];
-				r = (((cc >> 10) & 31) * c) >> COLOR_ENVMAP_SHR;
-				g = (((cc >> 5) & 31) * c) >> COLOR_ENVMAP_SHR;
-				b = ((cc  & 31) * c) >> COLOR_ENVMAP_SHR;
-				c1 = (r << 10) | (g << 5) | b;
+				Y = (cc * c) >> COLOR_ENVMAP_SHR;
+				c1 = (cc & 0x00FF) | (Y & 0xFF00);
 				fc += dc;
 				fu += du;
 				fv += dv;
@@ -829,10 +824,8 @@ static void fillGouraudEnvmapEdges16(int yMin, int yMax, Screen *screen)
 			if (length & 1) {
 				c = FIXED_TO_INT(fc, FP_BASE);
 				cc = texData[(FIXED_TO_INT(fv, FP_BASE) << texHeightShift) + FIXED_TO_INT(fu, FP_BASE)];
-				r = (((cc >> 10) & 31) * c) >> COLOR_ENVMAP_SHR;
-				g = (((cc >> 5) & 31) * c) >> COLOR_ENVMAP_SHR;
-				b = ((cc  & 31) * c) >> COLOR_ENVMAP_SHR;
-				*dst++ = (r << 10) | (g << 5) | b;
+				Y = (cc * c) >> COLOR_ENVMAP_SHR;
+				*dst++ = (cc & 0x00FF) | (Y & 0xFF00);
 				fc += dc;
 				fu += du;
 				fv += dv;
@@ -969,10 +962,10 @@ void initEngineSoft(Screen *screen)
 	leftEdge = (Edge*)malloc(screen->height * sizeof(Edge));
 	rightEdge = (Edge*)malloc(screen->height * sizeof(Edge));
 
-	if (!lineColorShades[0]) lineColorShades[0] = crateColorShades(31,23,15, COLOR_GRADIENTS_SIZE);
-	if (!lineColorShades[1]) lineColorShades[1] = crateColorShades(15,23,31, COLOR_GRADIENTS_SIZE);
-	if (!lineColorShades[2]) lineColorShades[2] = crateColorShades(15,31,23, COLOR_GRADIENTS_SIZE);
-	if (!lineColorShades[3]) lineColorShades[3] = crateColorShades(31,15,23, COLOR_GRADIENTS_SIZE);
+	if (!lineColorShades[0]) lineColorShades[0] = crateColorShades(255,192,128, COLOR_GRADIENTS_SIZE);
+	if (!lineColorShades[1]) lineColorShades[1] = crateColorShades(128,192,255, COLOR_GRADIENTS_SIZE);
+	if (!lineColorShades[2]) lineColorShades[2] = crateColorShades(128,255,192, COLOR_GRADIENTS_SIZE);
+	if (!lineColorShades[3]) lineColorShades[3] = crateColorShades(255,128,192, COLOR_GRADIENTS_SIZE);
 
-	if (!gouraudColorShades) gouraudColorShades = crateColorShades(27,29,31, COLOR_GRADIENTS_SIZE);
+	if (!gouraudColorShades) gouraudColorShades = crateColorShades(216,232,255, COLOR_GRADIENTS_SIZE);
 }

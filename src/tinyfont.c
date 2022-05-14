@@ -39,7 +39,7 @@ void initTinyFonts()
 	for (n = 0; n < TINY_FONTS_NUM; n++) {
 		for (y = 0; y < TINY_FONT_HEIGHT; y++) {
 			for (x = 0; x < TINY_FONT_WIDTH; x++) {
-				miniDecimalFonts[i++] = miniDecimalPixels[n * TINY_FONT_WIDTH + x + y * TINY_FONT_WIDTH * TINY_FONTS_NUM] * 0x8080;
+				miniDecimalFonts[i++] = miniDecimalPixels[n * TINY_FONT_WIDTH + x + y * TINY_FONT_WIDTH * TINY_FONTS_NUM] * 0x7F7F;
 			}
 		}
 	}

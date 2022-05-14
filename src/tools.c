@@ -23,11 +23,11 @@ uint16 RGB2YUV(int r, int g, int b)
 
 void setPal(int c, int r, int g, int b, uint16* pal)
 {
-	CLAMP(r, 0, 31)
-	CLAMP(g, 0, 31)
-	CLAMP(b, 0, 31)
+	CLAMP(r, 0, 255)
+	CLAMP(g, 0, 255)
+	CLAMP(b, 0, 255)
 
-	pal[c] = (r << 10) | (g << 5) | b;
+	pal[c] = RGB2YUV(r, g, b);
 }
 
 void setPalGradient(int c0, int c1, int r0, int g0, int b0, int r1, int g1, int b1, uint16* pal)
@@ -50,16 +50,4 @@ void setPalGradient(int c0, int c1, int r0, int g0, int b0, int r1, int g1, int 
 		g0 += dg;
 		b0 += db;
 	}
-}
-
-void setPalGradientFromPrevIndex(int c0, int c1, int r1, int g1, int b1, uint16* pal)
-{
-	int r0, g0, b0;
-
-	c0--;
-	r0 = (pal[c0] >> 10) & 31;
-	g0 = (pal[c0] >> 5) & 31;
-	b0 = pal[c0] & 31;
-
-	setPalGradient(c0, c1, r0, g0, b0, r1, g1, b1, pal);
 }

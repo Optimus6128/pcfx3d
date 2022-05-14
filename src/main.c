@@ -2,6 +2,7 @@
 #include "script.h"
 
 #include "system.h"
+#include "input.h"
 #include "tinyfont.h"
 #include "tools.h"
 #include "fastking.h"
@@ -14,9 +15,10 @@ Screen *screen;
 
 int main()
 {
-	screen = initDisplay(SCREEN_WIDTH, SCREEN_HEIGHT, 8);
+	screen = initDisplay(SCREEN_WIDTH, SCREEN_HEIGHT, 16);
 
 	initTimer();
+//	initInput();
 	initTinyFonts();
 
 	initEngine(screen);
