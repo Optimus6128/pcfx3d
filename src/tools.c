@@ -1,9 +1,6 @@
 #include "tools.h"
 #include "mathutil.h"
 
-int sinF16[256], cosF16[256];
-
-
 uint16 RGB2YUV(int r, int g, int b)
 {
 	uint16 yuv;
@@ -65,13 +62,4 @@ void setPalGradientFromPrevIndex(int c0, int c1, int r1, int g1, int b1, uint16*
 	b0 = pal[c0] & 31;
 
 	setPalGradient(c0, c1, r0, g0, b0, r1, g1, b1, pal);
-}
-
-void initTools()
-{
-	int i;
-	for (i=0; i<256; ++i) {
-		sinF16[i] = SinF16(i<<16);
-		cosF16[i] = CosF16(i<<16);
-	}
 }

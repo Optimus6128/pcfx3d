@@ -2,11 +2,12 @@
 #define ENGINE_SOFT_H
 
 #include "mathutil.h"
+#include "system.h"
 
 #include "engine_main.h"
 #include "engine_mesh.h"
 
-#define COLOR_GRADIENTS_SHR 5
+#define COLOR_GRADIENTS_SHR 8
 #define COLOR_ENVMAP_SHR COLOR_GRADIENTS_SHR
 #define COLOR_GRADIENTS_SIZE (1 << COLOR_GRADIENTS_SHR)
 
@@ -21,8 +22,8 @@ enum {	RENDER_SOFT_METHOD_WIREFRAME,
 		RENDER_SOFT_METHOD_GOURAUD_ENVMAP, 
 		RENDER_SOFT_METHOD_NUM };
 
-void initEngineSoft(void);
-void renderTransformedMeshSoft(Mesh *ms, ScreenElement *elements);
+void initEngineSoft(Screen *screen);
+void renderTransformedMeshSoft(Mesh *ms, ScreenElement *elements, Screen *screen);
 
 void setRenderSoftMethod(int method);
 #endif

@@ -2,6 +2,7 @@
 #define ENGINE_MAIN_H
 
 #include "engine_mesh.h"
+#include "system.h"
 
 #define MAX_VERTEX_ELEMENTS_NUM 256
 
@@ -24,7 +25,7 @@ typedef struct Object3D
 	int rotX, rotY, rotZ;
 }Object3D;
 
-void initEngine(void);
+void initEngine(Screen *screen);
 
 Object3D* initObject3D(Mesh *ms);
 
@@ -32,8 +33,7 @@ void setObject3Dpos(Object3D *obj, int px, int py, int pz);
 void setObject3Drot(Object3D *obj, int rx, int ry, int rz);
 void setObject3Dmesh(Object3D *obj, Mesh *ms);
 
-void renderObject3D(Object3D *obj);
-void renderObject3Dsoft(Object3D *obj);
+void renderObject3D(Object3D *obj, Screen *screen);
 
 void createRotationMatrixValues(int rotX, int rotY, int rotZ, int *rotVecs);	// I will hide this again after I fix the volume
 

@@ -9,9 +9,6 @@
 #include "mathutil.h"
 #include "tools.h"
 
-
-#define SOFT_BUFF_MAX_SIZE (4 * SCREEN_WIDTH * SCREEN_HEIGHT)
-
 #define DIV_TAB_SIZE 4096
 #define DIV_TAB_SHIFT 16
 
@@ -23,23 +20,10 @@ typedef struct Edge
 	int u,v;
 }Edge;
 
-typedef struct SoftBuffer
-{
-	int bpp;
-	int width;
-	int height;
-	int stride;
-	int currentIndex;
-	uint8 *data;
-}SoftBuffer;
-
 static int renderSoftMethod = RENDER_SOFT_METHOD_GOURAUD;
 
-SoftBuffer softBuffer;
-void *softBufferCurrentPtr;
-
-static Edge leftEdge[SCREEN_HEIGHT];
-static Edge rightEdge[SCREEN_HEIGHT];
+static Edge *leftEdge;
+static Edge *rightEdge;
 
 static int32 divTab[DIV_TAB_SIZE];
 
@@ -53,8 +37,8 @@ static Texture *activeTexture = NULL;
 #define LN_AND ((1 << LN_BASE) - 1)
 
 
-static void(*fillEdges)(int yMin, int yMax);
-static void(*prepareEdgeList) (ScreenElement *e0, ScreenElement *e1);
+static void(*fillEdges)(int yMin, int yMax, Screen *screen);
+static void(*prepareEdgeList) (ScreenElement *e0, ScreenElement *e1, Screen *screen);
 
 
 static void bindGradient(uint16 *gradient)
@@ -95,7 +79,7 @@ static void initDivs()
     }
 }
 
-static void drawAntialiasedLine(ScreenElement *e1, ScreenElement *e2)
+static void drawAntialiasedLine(ScreenElement *e1, ScreenElement *e2, Screen *screen)
 {
 	int x1 = e1->x;
 	int y1 = e1->y;
@@ -112,10 +96,9 @@ static void drawAntialiasedLine(ScreenElement *e1, ScreenElement *e2)
 	int temp;
     int chdx, chdy;
 
-	uint16 *vram = (uint16*)softBufferCurrentPtr;
-	const int screenWidth = softBuffer.width;
-	const int screenHeight = softBuffer.height;
-	const int stride16 = softBuffer.stride >> 1;
+	uint16 *vram = (uint16*)screen->data;
+	const int screenWidth = screen->width;
+	const int screenHeight = screen->height;
 
     // ==== Clipping ====
 
@@ -161,14 +144,14 @@ static void drawAntialiasedLine(ScreenElement *e1, ScreenElement *e2)
 			const int yp = y00 >> LN_BASE;
 
 			if (x >= 0 && x < screenWidth && yp >=0 && yp < screenHeight - 1) {
-				vramofs = yp*stride16 + x;
+				vramofs = yp*screenWidth + x;
 				frac = y00 & LN_AND;
 
 				shade = (LN_AND - frac) >> 4;
 				*(vram + vramofs) |= activeGradient[shade];
 
 				shade = frac >> 4;
-				*(vram + vramofs+stride16) |= activeGradient[shade];
+				*(vram + vramofs+screenWidth) |= activeGradient[shade];
 			}
             y00+=l;
 		}
@@ -187,7 +170,7 @@ static void drawAntialiasedLine(ScreenElement *e1, ScreenElement *e2)
 			const int xp = x00 >> LN_BASE;
 
 			if (y >= 0 && y < screenHeight && xp >=0 && xp < screenWidth - 1) {
-				vramofs = y*stride16 + xp;
+				vramofs = y*screenWidth + xp;
 				frac = x00 & LN_AND;
 
 				shade = (LN_AND - frac) >> 4;
@@ -201,10 +184,13 @@ static void drawAntialiasedLine(ScreenElement *e1, ScreenElement *e2)
 	}
 }
 
-static void prepareEdgeListGouraud(ScreenElement *e0, ScreenElement *e1)
+static void prepareEdgeListGouraud(ScreenElement *e0, ScreenElement *e1, Screen *screen)
 {
 	Edge *edgeListToWrite;
 	ScreenElement *eTemp;
+
+	const int screenWidth = screen->width;
+	const int screenHeight = screen->height;
 
 	if (e0->y == e1->y) return;
 
@@ -238,14 +224,14 @@ static void prepareEdgeListGouraud(ScreenElement *e0, ScreenElement *e1)
 			dy += y0;
 			y0 = 0;
 		}
-		if (y1 > SCREEN_HEIGHT-1) {
-			dy -= (y1 - SCREEN_HEIGHT-1);
+		if (y1 > screenHeight-1) {
+			dy -= (y1 - screenHeight-1);
 		}
 
         edgeListToWrite = &edgeListToWrite[y0];
         do {
 			int x = FIXED_TO_INT(fx, FP_BASE);
-			CLAMP(x, 0, SCREEN_WIDTH-1)
+			CLAMP(x, 0, screenWidth-1)
 			edgeListToWrite->x = x;
 			edgeListToWrite->c = fc;
             ++edgeListToWrite;
@@ -255,10 +241,13 @@ static void prepareEdgeListGouraud(ScreenElement *e0, ScreenElement *e1)
     }
 }
 
-static void prepareEdgeListEnvmap(ScreenElement *e0, ScreenElement *e1)
+static void prepareEdgeListEnvmap(ScreenElement *e0, ScreenElement *e1, Screen *screen)
 {
 	Edge *edgeListToWrite;
 	ScreenElement *eTemp;
+
+	const int screenWidth = screen->width;
+	const int screenHeight = screen->height;
 
 	if (e0->y == e1->y) return;
 
@@ -295,14 +284,14 @@ static void prepareEdgeListEnvmap(ScreenElement *e0, ScreenElement *e1)
 			dy += y0;
 			y0 = 0;
 		}
-		if (y1 > SCREEN_HEIGHT-1) {
-			dy -= (y1 - SCREEN_HEIGHT-1);
+		if (y1 > screenHeight-1) {
+			dy -= (y1 - screenHeight-1);
 		}
 
         edgeListToWrite = &edgeListToWrite[y0];
         do {
 			int x = FIXED_TO_INT(fx, FP_BASE);
-			CLAMP(x, 0, SCREEN_WIDTH-1)
+			CLAMP(x, 0, screenWidth-1)
 			edgeListToWrite->x = x;
 			edgeListToWrite->u = fu;
 			edgeListToWrite->v = fv;
@@ -314,10 +303,13 @@ static void prepareEdgeListEnvmap(ScreenElement *e0, ScreenElement *e1)
     }
 }
 
-static void prepareEdgeListGouraudEnvmap(ScreenElement *e0, ScreenElement *e1)
+static void prepareEdgeListGouraudEnvmap(ScreenElement *e0, ScreenElement *e1, Screen *screen)
 {
 	Edge *edgeListToWrite;
 	ScreenElement *eTemp;
+
+	const int screenWidth = screen->width;
+	const int screenHeight = screen->height;
 
 	if (e0->y == e1->y) return;
 
@@ -357,14 +349,14 @@ static void prepareEdgeListGouraudEnvmap(ScreenElement *e0, ScreenElement *e1)
 			dy += y0;
 			y0 = 0;
 		}
-		if (y1 > SCREEN_HEIGHT-1) {
-			dy -= (y1 - SCREEN_HEIGHT-1);
+		if (y1 > screenHeight-1) {
+			dy -= (y1 - screenHeight-1);
 		}
 
         edgeListToWrite = &edgeListToWrite[y0];
         do {
 			int x = FIXED_TO_INT(fx, FP_BASE);
-			CLAMP(x, 0, SCREEN_WIDTH-1)
+			CLAMP(x, 0, screenWidth-1)
 			edgeListToWrite->x = x;
 			edgeListToWrite->c = fc;
 			edgeListToWrite->u = fu;
@@ -378,10 +370,10 @@ static void prepareEdgeListGouraudEnvmap(ScreenElement *e0, ScreenElement *e1)
     }
 }
 
-static void fillGouraudEdges8(int yMin, int yMax)
+static void fillGouraudEdges8(int yMin, int yMax, Screen *screen)
 {
-	const int stride8 = softBuffer.stride;
-	uint8 *vram8 = (uint8*)softBufferCurrentPtr + yMin * stride8;
+	const int screenWidth = screen->width;
+	uint8 *vram8 = (uint8*)screen->data + yMin * screenWidth;
 
 	int count = yMax - yMin + 1;
 	Edge *le = &leftEdge[yMin];
@@ -440,14 +432,14 @@ static void fillGouraudEdges8(int yMin, int yMax)
 
 		++le;
 		++re;
-		vram8 += stride8;
+		vram8 += screenWidth;
 	} while(--count > 0);
 }
 
-static void fillGouraudEdges16(int yMin, int yMax)
+static void fillGouraudEdges16(int yMin, int yMax, Screen *screen)
 {
-	const int stride16 = softBuffer.stride >> 1;
-	uint16 *vram16 = (uint16*)softBufferCurrentPtr + yMin * stride16;
+	const int screenWidth = screen->width;
+	uint16 *vram16 = (uint16*)screen->data + yMin * screenWidth;
 
 	int count = yMax - yMin + 1;
 	Edge *le = &leftEdge[yMin];
@@ -501,14 +493,14 @@ static void fillGouraudEdges16(int yMin, int yMax)
 
 		++le;
 		++re;
-		vram16 += stride16;
+		vram16 += screenWidth;
 	} while(--count > 0);
 }
 
-static void fillEnvmapEdges8(int yMin, int yMax)
+static void fillEnvmapEdges8(int yMin, int yMax, Screen *screen)
 {
-	const int stride8 = softBuffer.stride;
-	uint8 *vram8 = (uint8*)softBufferCurrentPtr + yMin * stride8;
+	const int screenWidth = screen->width;
+	uint8 *vram8 = (uint8*)screen->data + yMin * screenWidth;
 
 	int count = yMax - yMin + 1;
 	Edge *le = &leftEdge[yMin];
@@ -580,14 +572,14 @@ static void fillEnvmapEdges8(int yMin, int yMax)
 
 		++le;
 		++re;
-		vram8 += stride8;
+		vram8 += screenWidth;
 	} while(--count > 0);
 }
 
-static void fillEnvmapEdges16(int yMin, int yMax)
+static void fillEnvmapEdges16(int yMin, int yMax, Screen *screen)
 {
-	const int stride16 = softBuffer.stride >> 1;
-	uint16 *vram16 = (uint16*)softBufferCurrentPtr + yMin * stride16;
+	const int screenWidth = screen->width;
+	uint16 *vram16 = (uint16*)screen->data + yMin * screenWidth;
 
 	int count = yMax - yMin + 1;
 	Edge *le = &leftEdge[yMin];
@@ -652,15 +644,14 @@ static void fillEnvmapEdges16(int yMin, int yMax)
 
 		++le;
 		++re;
-		vram16 += stride16;
+		vram16 += screenWidth;
 	} while(--count > 0);
 }
 
-static void fillGouraudEnvmapEdges8(int yMin, int yMax)
+static void fillGouraudEnvmapEdges8(int yMin, int yMax, Screen *screen)
 {
-	const int stride8 = softBuffer.stride;
-
-	uint8 *vram8 = (uint8*)softBufferCurrentPtr + yMin * stride8;
+	const int screenWidth = screen->width;
+	uint8 *vram8 = (uint8*)screen->data + yMin * screenWidth;
 
 	int count = yMax - yMin + 1;
 	Edge *le = &leftEdge[yMin];
@@ -747,15 +738,14 @@ static void fillGouraudEnvmapEdges8(int yMin, int yMax)
 
 		++le;
 		++re;
-		vram8 += stride8;
+		vram8 += screenWidth;
 	} while(--count > 0);
 }
 
-static void fillGouraudEnvmapEdges16(int yMin, int yMax)
+static void fillGouraudEnvmapEdges16(int yMin, int yMax, Screen *screen)
 {
-	const int stride16 = softBuffer.stride >> 1;
-
-	uint16 *vram16 = (uint16*)softBufferCurrentPtr + yMin * stride16;
+	const int screenWidth = screen->width;
+	uint16 *vram16 = (uint16*)screen->data + yMin * screenWidth;
 
 	int count = yMax - yMin + 1;
 	Edge *le = &leftEdge[yMin];
@@ -851,87 +841,30 @@ static void fillGouraudEnvmapEdges16(int yMin, int yMax)
 
 		++le;
 		++re;
-		vram16 += stride16;
+		vram16 += screenWidth;
 	} while(--count > 0);
 }
 
-static void drawTriangle(ScreenElement *e0, ScreenElement *e1, ScreenElement *e2)
+static void drawTriangle(ScreenElement *e0, ScreenElement *e1, ScreenElement *e2, Screen *screen)
 {
 	int yMin = e0->y;
 	int yMax = yMin;
 
-	prepareEdgeList(e0, e1);
-	prepareEdgeList(e1, e2);
-	prepareEdgeList(e2, e0);
+	prepareEdgeList(e0, e1, screen);
+	prepareEdgeList(e1, e2, screen);
+	prepareEdgeList(e2, e0, screen);
 
 	if (e1->y < yMin) yMin = e1->y; if (e1->y > yMax) yMax = e1->y;
 	if (e2->y < yMin) yMin = e2->y; if (e2->y > yMax) yMax = e2->y;
 
 	if (yMin < 0) yMin = 0;
-	if (yMax > SCREEN_HEIGHT-1) yMax = SCREEN_HEIGHT-1;
+	if (yMax > screen->height-1) yMax = screen->height-1;
 
-	fillEdges(yMin, yMax);
-}
-
-static void updateSoftBufferVariables(int posX, int posY, int width, int height, Mesh *ms)
-{
-	int currentBufferSize;
-	softBuffer.bpp = 16;
-	if (ms->renderType & MESH_OPTION_RENDER_SOFT8) {
-		softBuffer.bpp = 8;
-	}
-
-	softBuffer.width = width;
-	softBuffer.height = height;
-	softBuffer.stride = (((softBuffer.width * softBuffer.bpp) + 31) >> 5) << 2;	// must be multiples of 4 bytes
-	if (softBuffer.stride < 8) softBuffer.stride = 8;					// and no less than 8 bytes
-
-	currentBufferSize = (((softBuffer.stride * softBuffer.height) + 255) >> 8) << 8; // must be in multiples of 256 bytes for the unrolled optimized memset
-	if (softBuffer.currentIndex + currentBufferSize > SOFT_BUFF_MAX_SIZE) {
-		softBuffer.currentIndex = 0;
-	}
-	softBufferCurrentPtr = &softBuffer.data[softBuffer.currentIndex];
-	if (currentBufferSize <= SOFT_BUFF_MAX_SIZE) {
-		//vramSet(0, softBufferCurrentPtr, currentBufferSize);
-		memset(softBufferCurrentPtr, 0, currentBufferSize);
-		softBuffer.currentIndex += currentBufferSize;
-	}	// else something went wrong
-}
-
-static void prepareAndPositionSoftBuffer(Mesh *ms, ScreenElement *elements)
-{
-	int i;
-	int minX, maxX, minY, maxY;
-	const int count = ms->verticesNum;
-
-	minX = maxX = elements[0].x;
-	minY = maxY = elements[0].y;
-
-	for (i=1; i<count; ++i) {
-		const int x = elements[i].x;
-		const int y = elements[i].y;
-		if (x < minX) minX = x;
-		if (x > maxX) maxX = x;
-		if (y < minY) minY = y;
-		if (y > maxY) maxY = y;
-	}
-
-	//CLAMP(minX, 0, SCREEN_WIDTH-1)
-	//CLAMP(minY, 0, SCREEN_HEIGHT-1)
-
-	// Offset element positions to upper left min corner
-	for (i=0; i<count; ++i) {
-		elements[i].x -= minX;
-		elements[i].y -= minY;
-	}
-
-	updateSoftBufferVariables(minX, minY, maxX - minX + 1, maxY - minY + 1, ms);
+	fillEdges(yMin, yMax, screen);
 }
 
 static void prepareMeshSoftRender(Mesh *ms, ScreenElement *elements)
 {
-	prepareAndPositionSoftBuffer(ms, elements);
-
 	switch(renderSoftMethod) {
 		case RENDER_SOFT_METHOD_GOURAUD:
 		{
@@ -968,7 +901,7 @@ static void prepareMeshSoftRender(Mesh *ms, ScreenElement *elements)
 	}
 }
 
-static void renderMeshSoft(Mesh *ms, ScreenElement *elements)
+static void renderMeshSoft(Mesh *ms, ScreenElement *elements, Screen *screen)
 {
 	ScreenElement *e0, *e1, *e2;
 	int i,n;
@@ -985,19 +918,19 @@ static void renderMeshSoft(Mesh *ms, ScreenElement *elements)
 		n = (e0->x - e1->x) * (e2->y - e1->y) - (e2->x - e1->x) * (e0->y - e1->y);
 		if (n > 0) {
 			bindMeshPolyData(ms, i);
-			drawTriangle(e0, e1, e2);
+			drawTriangle(e0, e1, e2, screen);
 
 			if (ms->poly[i].numPoints == 4) {	// if quad then render another triangle
 				e1 = e2;
 				e2 = &elements[*index];
-				drawTriangle(e0, e1, e2);
+				drawTriangle(e0, e1, e2, screen);
 			}
 		}
 		if (ms->poly[i].numPoints == 4) ++index;
 	}
 }
 
-static void renderMeshSoftWireframe(Mesh *ms, ScreenElement *elements)
+static void renderMeshSoftWireframe(Mesh *ms, ScreenElement *elements, Screen *screen)
 {
 	ScreenElement *e0, *e1;
 
@@ -1011,16 +944,16 @@ static void renderMeshSoftWireframe(Mesh *ms, ScreenElement *elements)
 		e1 = &elements[*lineIndex++];
 
 		bindMeshPolyData(ms, i);
-		drawAntialiasedLine(e0, e1);
+		drawAntialiasedLine(e0, e1, screen);
 	}
 }
 
-void renderTransformedMeshSoft(Mesh *ms, ScreenElement *elements)
+void renderTransformedMeshSoft(Mesh *ms, ScreenElement *elements, Screen *screen)
 {
 	if (renderSoftMethod == RENDER_SOFT_METHOD_WIREFRAME) {
-		renderMeshSoftWireframe(ms, elements);
+		renderMeshSoftWireframe(ms, elements, screen);
 	} else {
-		renderMeshSoft(ms, elements);
+		renderMeshSoft(ms, elements, screen);
 	}
 }
 
@@ -1029,19 +962,12 @@ void setRenderSoftMethod(int method)
 	renderSoftMethod = method;
 }
 
-static void initSoftBuffer()
-{
-	softBuffer.bpp = 16;
-	softBuffer.width = SCREEN_WIDTH;
-	softBuffer.height = SCREEN_HEIGHT;
-	softBuffer.currentIndex = 0;
-
-	softBuffer.data = malloc(SOFT_BUFF_MAX_SIZE);
-}
-
-void initEngineSoft()
+void initEngineSoft(Screen *screen)
 {
 	initDivs();
+
+	leftEdge = (Edge*)malloc(screen->height * sizeof(Edge));
+	rightEdge = (Edge*)malloc(screen->height * sizeof(Edge));
 
 	if (!lineColorShades[0]) lineColorShades[0] = crateColorShades(31,23,15, COLOR_GRADIENTS_SIZE);
 	if (!lineColorShades[1]) lineColorShades[1] = crateColorShades(15,23,31, COLOR_GRADIENTS_SIZE);
@@ -1049,6 +975,4 @@ void initEngineSoft()
 	if (!lineColorShades[3]) lineColorShades[3] = crateColorShades(31,15,23, COLOR_GRADIENTS_SIZE);
 
 	if (!gouraudColorShades) gouraudColorShades = crateColorShades(27,29,31, COLOR_GRADIENTS_SIZE);
-
-	initSoftBuffer();
 }

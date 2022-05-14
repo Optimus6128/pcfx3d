@@ -61,8 +61,6 @@ typedef struct Point2Darray
 }Point2Darray;
 
 
-extern int shr[257];
-
 int isqrt(int x);
 
 int getRand(int from, int to);

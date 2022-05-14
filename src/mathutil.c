@@ -3,8 +3,6 @@
 #include "mathutil.h"
 
 
-int shr[257]; // ugly way to get precalced fast right shift for division with power of two numbers
-
 int isqrt(int x) {
     int q = 1, r = 0;
     while (q <= x) {
@@ -39,15 +37,6 @@ int getShr(int n)
 		b++;
 	}while((n>>=1)!=0);
 	return b;
-}
-
-void initMathUtil()
-{
-	int i;
-	for (i=1; i<=256; i++)
-	{
-		shr[i] = getShr(i);
-	}
 }
 
 void setVector3D(Vector3D *v, int x, int y, int z)

@@ -6,16 +6,20 @@
 #include "tools.h"
 #include "fastking.h"
 
+#include "engine_main.h"
+
 int nframe = 0;
 
 Screen *screen;
 
 int main()
 {
-	screen = initDisplay(SCREEN_WIDTH, SCREEN_HEIGHT, 16);
+	screen = initDisplay(SCREEN_WIDTH, SCREEN_HEIGHT, 8);
 
 	initTimer();
 	initTinyFonts();
+
+	initEngine(screen);
 
 	scriptInit(screen);
 

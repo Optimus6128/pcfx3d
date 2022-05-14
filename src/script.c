@@ -12,8 +12,8 @@
 #include "procgen_texture.h"
 
 
-//static int rotX=0, rotY=0, rotZ=0;
-//static int zoom=256;
+static int rotX=0, rotY=0, rotZ=0;
+static int zoom=256;
 
 static Mesh *softMesh8;
 static Mesh *softMesh16;
@@ -21,7 +21,7 @@ static Mesh *softMesh16;
 static Texture *cloudTex;
 static Object3D *softObj;
 
-//static int renderSoftMethodIndex = RENDER_SOFT_METHOD_GOURAUD;
+static int renderSoftMethodIndex = RENDER_SOFT_METHOD_GOURAUD;
 
 static void effectMeshSoftInit()
 {
@@ -52,7 +52,32 @@ static void effectMeshSoftInit()
 
 	destroyPoint2Darray(ptArray);
 
-	initEngineSoft();
+	setRenderSoftMethod(renderSoftMethodIndex);
+}
+
+static void inputScript()
+{
+	rotX+=1;
+	rotY+=2;
+	rotZ+=3;
+}
+
+static void fastClearScreen(Screen *screen)
+{
+	int i;
+
+	uint32 *dst32 = (uint32*)screen->data;
+	const int count = (screen->width * screen->height * (screen->bpp >> 3)) >> (2+3);
+	for (i=0; i<count; ++i) {
+		*dst32++ = 0;
+		*dst32++ = 0;
+		*dst32++ = 0;
+		*dst32++ = 0;
+		*dst32++ = 0;
+		*dst32++ = 0;
+		*dst32++ = 0;
+		*dst32++ = 0;
+	}
 }
 
 void scriptInit(Screen *screen)
@@ -69,4 +94,11 @@ void scriptInit(Screen *screen)
 
 void scriptRun(Screen *screen, int t)
 {
+	inputScript();
+
+	fastClearScreen(screen);
+
+	setObject3Dpos(softObj, 0, 0, zoom);
+	setObject3Drot(softObj, rotX, rotY, rotZ);
+	renderObject3D(softObj, screen);
 }

@@ -16,10 +16,6 @@ static Vector3D rotatedNormals[MAX_VERTEX_ELEMENTS_NUM];
 static int icos[256], isin[256];
 static uint32 recZ[NUM_REC_Z];
 
-static int screenOffsetX = 0;
-static int screenOffsetY = 0;
-static int screenWidth = SCREEN_WIDTH;
-static int screenHeight = SCREEN_HEIGHT;
 
 void createRotationMatrixValues(int rotX, int rotY, int rotZ, int *rotVecs)
 {
@@ -41,7 +37,7 @@ void createRotationMatrixValues(int rotX, int rotY, int rotZ, int *rotVecs)
 	*rotVecs = (FIXED_MUL(cosxr, cosyr, FP_BASE)) << FP_BASE_TO_CORE;
 }
 
-static void translateAndProjectVertices(Object3D *obj)
+static void translateAndProjectVertices(Object3D *obj, Screen *screen)
 {
 	int i;
 
@@ -51,8 +47,8 @@ static void translateAndProjectVertices(Object3D *obj)
 
 	const int lvNum = obj->mesh->verticesNum;
 
-	const int offsetX = screenOffsetX + (screenWidth >> 1);
-	const int offsetY = screenOffsetY + (screenHeight >> 1);
+	const int offsetX = screen->width >> 1;
+	const int offsetY = screen->height >> 1;
 
 	for (i=0; i<lvNum; i++)
 	{
@@ -66,7 +62,7 @@ static void translateAndProjectVertices(Object3D *obj)
 	}
 }
 
-static void rotateVerticesHw(Object3D *obj, bool rotatePolyNormals, bool rotateVertexNormals)
+static void rotateVerticesAndNormals(Object3D *obj, bool rotatePolyNormals, bool rotateVertexNormals)
 {
 	mat33f16 rotMat;
 
@@ -123,15 +119,10 @@ static void calculateVertexEnvmapTC(Object3D *obj)
 	}
 }
 
-static void transformMesh(Object3D *obj, bool soft)
+void renderObject3D(Object3D *obj, Screen *screen)
 {
-	rotateVerticesHw(obj, !soft, soft);
-	translateAndProjectVertices(obj);
-}
-
-void renderObject3Dsoft(Object3D *obj)
-{
-	transformMesh(obj, true);
+	rotateVerticesAndNormals(obj, false, true);
+	translateAndProjectVertices(obj, screen);
 
 	if (obj->mesh->renderType & MESH_OPTION_ENABLE_LIGHTING) {
 		calculateVertexLighting(obj);
@@ -139,20 +130,7 @@ void renderObject3Dsoft(Object3D *obj)
 	if (obj->mesh->renderType & MESH_OPTION_ENABLE_ENVMAP) {
 		calculateVertexEnvmapTC(obj);
 	}
-	renderTransformedMeshSoft(obj->mesh, screenElements);
-}
-
-void setScreenRegion(int posX, int posY, int width, int height)
-{
-	// In the future I can do some of it origin clipping on the hardware API
-	// however the new width/height is still needed for the CPU to offset the 3d transformations to the center
-
-	// Doom used SetClipWidth, SetClipHeight, SetClipOrigin but in other code like the STNICCC I couldn't make them work, maybe need some more init somewhere else
-
-	screenOffsetX = posX;
-	screenOffsetY = posY;
-	screenWidth = width;
-	screenHeight = height;
+	renderTransformedMeshSoft(obj->mesh, screenElements, screen);
 }
 
 Object3D* initObject3D(Mesh *ms)
@@ -186,7 +164,7 @@ void setObject3Dmesh(Object3D *obj, Mesh *ms)
 	obj->mesh = ms;
 }
 
-void initEngine()
+void initEngine(Screen *screen)
 {
 	uint32 i;
 	for(i=0; i<256; i++)
@@ -199,5 +177,5 @@ void initEngine()
 		recZ[i] = (1 << REC_FPSHR) / i;
 	}
 
-	initEngineSoft();
+	initEngineSoft(screen);
 }
