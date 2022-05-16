@@ -15,10 +15,10 @@ Screen *screen;
 
 int main()
 {
-	screen = initDisplay(SCREEN_WIDTH, SCREEN_HEIGHT, 16);
+	screen = initDisplay(SCREEN_WIDTH, SCREEN_HEIGHT, 8);
 
 	initTimer();
-//	initInput();
+	initInput();
 	initTinyFonts();
 
 	initEngine(screen);

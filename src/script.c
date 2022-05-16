@@ -28,6 +28,8 @@ static Object3D *softObj;
 
 static int renderSoftMethodIndex = RENDER_SOFT_METHOD_GOURAUD;
 
+static bool autoRot = false;
+
  
 static void effectMeshSoftInit(int bpp)
 {
@@ -68,9 +70,11 @@ static void effectMeshSoftInit(int bpp)
 
 static void inputScript()
 {
-	//rotX+=1;
-	//rotY+=2;
-	//rotZ+=3;
+	if (autoRot) {
+		rotX+=1;
+		rotY+=2;
+		rotZ+=3;
+	}
 
 	updateInput();
 
@@ -104,6 +108,10 @@ static void inputScript()
 
 	if (isJoyButtonPressed(JOY_E)) {
 		zoom -= zoomVel;
+	}
+
+	if (isJoyButtonPressedOnce(JOY_F)) {
+		autoRot = !autoRot;
 	}
 
 	if (isJoyButtonPressedOnce(JOY_START)) {

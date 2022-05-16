@@ -719,9 +719,9 @@ static void fillGouraudEnvmapEdges8(int yMin, int yMax, Screen *screen)
 			fv += dv;
 
 			#ifdef BIG_ENDIAN
-				*dst32++ = ((c0 << 24) | (c1 << 16) | (c2 << 8) | c3) + 0x01010101;;
+				*dst32++ = ((c0 << 24) | (c1 << 16) | (c2 << 8) | c3);
 			#else
-				*dst32++ = ((c3 << 24) | (c2 << 16) | (c1 << 8) | c0) + 0x01010101;;
+				*dst32++ = ((c3 << 24) | (c2 << 16) | (c1 << 8) | c0);
 			#endif
 			length-=4;
 		};
