@@ -468,7 +468,7 @@ static void fillGouraudEdges16(int y0, int y1)
 				int c = FIXED_TO_INT(fc, FP_BASE);
 				fc += dc;
 
-				*dst++ = 0x5678; //activeGradient[c];
+				*dst++ = activeGradient[c];
 				length--;
 			}
 
@@ -476,9 +476,9 @@ static void fillGouraudEdges16(int y0, int y1)
 			while(length >= 2) {
 				int c0, c1;
 
-				c0 = 10; //FIXED_TO_INT(fc, FP_BASE);
+				c0 = FIXED_TO_INT(fc, FP_BASE);
 				fc += dc;
-				c1 = 10; //FIXED_TO_INT(fc, FP_BASE);
+				c1 = FIXED_TO_INT(fc, FP_BASE);
 				fc += dc;
 
 				#ifdef BIG_ENDIAN
@@ -494,7 +494,7 @@ static void fillGouraudEdges16(int y0, int y1)
 				int c = FIXED_TO_INT(fc, FP_BASE);
 				fc += dc;
 
-				*dst++ = 0x9ABC; //activeGradient[c];
+				*dst++ = activeGradient[c];
 			}
 		}
 
@@ -865,6 +865,7 @@ static void drawTriangle(ScreenElement *e0, ScreenElement *e1, ScreenElement *e2
 static void updateSoftBufferVariables(RectArea *bufferArea, Screen *screen)
 {
 	const int currentBufferSize = (bufferArea->width * bufferArea->height * screen->bpp) >> 3;
+	uint32 *dst = (uint32*)softBuffer.data;
 
 	softBuffer.width = bufferArea->width;
 	softBuffer.height = bufferArea->height;
@@ -872,7 +873,10 @@ static void updateSoftBufferVariables(RectArea *bufferArea, Screen *screen)
 	softBuffer.posY = bufferArea->posY;
 
 	if (currentBufferSize <= softBufferMaxSize) {
-		memset(softBuffer.data, 0, currentBufferSize);
+		int count = currentBufferSize >> 2;
+		do {
+			*dst++ = 0;
+		}while(--count>0);
 	}
 }
 
@@ -940,6 +944,8 @@ static void prepareAndPositionSoftBuffer(Mesh *ms, ScreenElement *elements, Scre
 	currRectArea.height = maxY - minY + 1;
 
 	finalRectArea = createUnionOfLastTwoBuffersForArea(&currRectArea);
+	
+	finalRectArea->width = (finalRectArea->width + 3) & ~3;	// align 4 bytes width to avoid glitches or performance when memcpy lines to vram
 
 	// Offset element positions to upper left min corner
 	for (i=0; i<count; ++i) {

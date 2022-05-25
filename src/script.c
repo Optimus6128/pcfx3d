@@ -122,24 +122,6 @@ static void inputScript()
 	}
 }
 
-static void fastClearScreen(Screen *screen)
-{
-	int i;
-
-	uint32 *dst32 = (uint32*)screen->data;
-	const int count = (screen->width * screen->height * (screen->bpp >> 3)) >> (2+3);
-	for (i=0; i<count; ++i) {
-		*dst32++ = 0;
-		*dst32++ = 0;
-		*dst32++ = 0;
-		*dst32++ = 0;
-		*dst32++ = 0;
-		*dst32++ = 0;
-		*dst32++ = 0;
-		*dst32++ = 0;
-	}
-}
-
 void scriptInit(Screen *screen)
 {
 	if (screen->bpp==8) {
@@ -156,8 +138,6 @@ void scriptInit(Screen *screen)
 void scriptRun(Screen *screen, int t)
 {
 	inputScript();
-
-	fastClearScreen(screen);
 
 	setObject3Dpos(softObj, 0, 0, zoom);
 	setObject3Drot(softObj, rotX, rotY, rotZ);
