@@ -32,7 +32,6 @@ typedef struct SoftBuffer
 {
 	int width;
 	int height;
-	int stride;
 	int posX;
 	int posY;
 	uint8 *data;
@@ -119,9 +118,9 @@ static void drawAntialiasedLine(ScreenElement *e1, ScreenElement *e2, Screen *sc
 	int temp;
     int chdx, chdy;
 
-	uint16 *vram = (uint16*)screen->data;
-	const int screenWidth = screen->width;
-	const int screenHeight = screen->height;
+	uint16 *vram = (uint16*)softBuffer.data;
+	const int screenWidth = softBuffer.width;
+	const int screenHeight = softBuffer.height;
 
     // ==== Clipping ====
 
@@ -380,8 +379,8 @@ static void prepareEdgeListGouraudEnvmap(ScreenElement *e0, ScreenElement *e1, S
 
 static void fillGouraudEdges8(int y0, int y1)
 {
-	const int stride8 = softBuffer.stride;
-	uint8 *vram8 = (uint8*)softBuffer.data + y0 * stride8;
+	const int stride = softBuffer.width;
+	uint8 *dst8 = (uint8*)softBuffer.data + y0 * stride;
 
 	int count = y1 - y0 + 1;
 	Edge *le = &leftEdge[y0];
@@ -391,7 +390,7 @@ static void fillGouraudEdges8(int y0, int y1)
 		const int cl = le->c;
 		const int cr = re->c;
 		int length = re->x - xl;
-		uint8 *dst = vram8 + xl;
+		uint8 *dst = dst8 + xl;
 		uint32 *dst32;
 
 		const int repDiv = divTab[length + DIV_TAB_SIZE / 2];
@@ -440,14 +439,14 @@ static void fillGouraudEdges8(int y0, int y1)
 
 		++le;
 		++re;
-		vram8 += stride8;
+		dst8 += stride;
 	} while(--count > 0);
 }
 
 static void fillGouraudEdges16(int y0, int y1)
 {
-	const int stride16 = softBuffer.stride;
-	uint16 *vram16 = (uint16*)softBuffer.data + y0 * stride16;
+	const int stride = softBuffer.width;
+	uint16 *dst16 = (uint16*)softBuffer.data + y0 * stride;
 
 	int count = y1 - y0 + 1;
 	Edge *le = &leftEdge[y0];
@@ -457,7 +456,7 @@ static void fillGouraudEdges16(int y0, int y1)
 		const int cl = le->c;
 		const int cr = re->c;
 		int length = re->x - xl;
-		uint16 *dst = vram16 + xl;
+		uint16 *dst = dst16 + xl;
 		uint32 *dst32;
 
 		const int repDiv = divTab[length + DIV_TAB_SIZE / 2];
@@ -469,7 +468,7 @@ static void fillGouraudEdges16(int y0, int y1)
 				int c = FIXED_TO_INT(fc, FP_BASE);
 				fc += dc;
 
-				*dst++ = activeGradient[c];
+				*dst++ = 0x5678; //activeGradient[c];
 				length--;
 			}
 
@@ -477,9 +476,9 @@ static void fillGouraudEdges16(int y0, int y1)
 			while(length >= 2) {
 				int c0, c1;
 
-				c0 = FIXED_TO_INT(fc, FP_BASE);
+				c0 = 10; //FIXED_TO_INT(fc, FP_BASE);
 				fc += dc;
-				c1 = FIXED_TO_INT(fc, FP_BASE);
+				c1 = 10; //FIXED_TO_INT(fc, FP_BASE);
 				fc += dc;
 
 				#ifdef BIG_ENDIAN
@@ -495,20 +494,20 @@ static void fillGouraudEdges16(int y0, int y1)
 				int c = FIXED_TO_INT(fc, FP_BASE);
 				fc += dc;
 
-				*dst++ = activeGradient[c];
+				*dst++ = 0x9ABC; //activeGradient[c];
 			}
 		}
 
 		++le;
 		++re;
-		vram16 += stride16;
+		dst16 += stride;
 	} while(--count > 0);
 }
 
 static void fillEnvmapEdges8(int y0, int y1)
 {
-	const int stride8 = softBuffer.stride;
-	uint8 *vram8 = (uint8*)softBuffer.data + y0 * stride8;
+	const int stride = softBuffer.width;
+	uint8 *dst8 = (uint8*)softBuffer.data + y0 * stride;
 
 	int count = y1 - y0 + 1;
 	Edge *le = &leftEdge[y0];
@@ -525,7 +524,7 @@ static void fillEnvmapEdges8(int y0, int y1)
 		const int vr = re->v;
 		int length = re->x - xl;
 
-		uint8 *dst = vram8 + xl;
+		uint8 *dst = dst8 + xl;
 		uint32 *dst32;
 
 		const int repDiv = divTab[length + DIV_TAB_SIZE / 2];
@@ -580,14 +579,14 @@ static void fillEnvmapEdges8(int y0, int y1)
 
 		++le;
 		++re;
-		vram8 += stride8;
+		dst8 += stride;
 	} while(--count > 0);
 }
 
 static void fillEnvmapEdges16(int y0, int y1)
 {
-	const int stride16 = softBuffer.stride;
-	uint16 *vram16 = (uint16*)softBuffer.data + y0 * stride16;
+	const int stride = softBuffer.width;
+	uint16 *dst16 = (uint16*)softBuffer.data + y0 * stride;
 
 	int count = y1 - y0 + 1;
 	Edge *le = &leftEdge[y0];
@@ -605,7 +604,7 @@ static void fillEnvmapEdges16(int y0, int y1)
 		int length = re->x - xl;
 
 		if (length>0){
-			uint16 *dst = vram16 + xl;
+			uint16 *dst = dst16 + xl;
 			uint32 *dst32;
 
 			const int repDiv = divTab[length + DIV_TAB_SIZE / 2];
@@ -652,15 +651,14 @@ static void fillEnvmapEdges16(int y0, int y1)
 
 		++le;
 		++re;
-		vram16 += stride16;
+		dst16 += stride;
 	} while(--count > 0);
 }
 
 static void fillGouraudEnvmapEdges8(int y0, int y1)
 {
-	const int stride8 = softBuffer.stride;
-
-	uint8 *vram8 = (uint8*)softBuffer.data + y0 * stride8;
+	const int stride = softBuffer.width;
+	uint8 *dst8 = (uint8*)softBuffer.data + y0 * stride;
 
 	int count = y1 - y0 + 1;
 	Edge *le = &leftEdge[y0];
@@ -678,7 +676,7 @@ static void fillGouraudEnvmapEdges8(int y0, int y1)
 		const int vl = le->v;
 		const int vr = re->v;
 		int length = re->x - xl;
-		uint8 *dst = vram8 + xl;
+		uint8 *dst = dst8 + xl;
 		uint32 *dst32;
 
 		const int repDiv = divTab[length + DIV_TAB_SIZE / 2];
@@ -747,14 +745,14 @@ static void fillGouraudEnvmapEdges8(int y0, int y1)
 
 		++le;
 		++re;
-		vram8 += stride8;
+		dst8 += stride;
 	} while(--count > 0);
 }
 
 static void fillGouraudEnvmapEdges16(int y0, int y1)
 {
-	const int stride16 = softBuffer.stride;
-	uint16 *vram16 = (uint16*)softBuffer.data + y0 * stride16;
+	const int stride = softBuffer.width;
+	uint16 *dst16 = (uint16*)softBuffer.data + y0 * stride;
 
 	int count = y1 - y0 + 1;
 	Edge *le = &leftEdge[y0];
@@ -775,7 +773,7 @@ static void fillGouraudEnvmapEdges16(int y0, int y1)
 		int length = re->x - xl;
 
 		if (length>0){
-			uint16 *dst = vram16 + xl;
+			uint16 *dst = dst16 + xl;
 			uint32 *dst32;
 
 			const int repDiv = divTab[length + DIV_TAB_SIZE / 2];
@@ -843,7 +841,7 @@ static void fillGouraudEnvmapEdges16(int y0, int y1)
 
 		++le;
 		++re;
-		vram16 += stride16;
+		dst16 += stride;
 	} while(--count > 0);
 }
 
@@ -864,14 +862,12 @@ static void drawTriangle(ScreenElement *e0, ScreenElement *e1, ScreenElement *e2
 
 	fillEdges(y0, y1);
 }
-static void updateSoftBufferVariables(RectArea *bufferArea)
+static void updateSoftBufferVariables(RectArea *bufferArea, Screen *screen)
 {
-	const int stride = bufferArea->width;	// might be 4 bytes aligned in the future
-	const int currentBufferSize = bufferArea->width * bufferArea->height;
+	const int currentBufferSize = (bufferArea->width * bufferArea->height * screen->bpp) >> 3;
 
 	softBuffer.width = bufferArea->width;
 	softBuffer.height = bufferArea->height;
-	softBuffer.stride = stride;
 	softBuffer.posX = bufferArea->posX;
 	softBuffer.posY = bufferArea->posY;
 
@@ -919,7 +915,7 @@ static RectArea *createUnionOfLastTwoBuffersForArea(RectArea *currRectArea)
 	return &finalRectArea;
 }
 
-static void prepareAndPositionSoftBuffer(Mesh *ms, ScreenElement *elements)
+static void prepareAndPositionSoftBuffer(Mesh *ms, ScreenElement *elements, Screen *screen)
 {
 	int i;
 	RectArea currRectArea;
@@ -951,12 +947,12 @@ static void prepareAndPositionSoftBuffer(Mesh *ms, ScreenElement *elements)
 		elements[i].y -= finalRectArea->posY;
 	}
 
-	updateSoftBufferVariables(finalRectArea);
+	updateSoftBufferVariables(finalRectArea, screen);
 }
 
-static void prepareMeshSoftRender(Mesh *ms, ScreenElement *elements)
+static void prepareMeshSoftRender(Mesh *ms, ScreenElement *elements, Screen *screen)
 {
-	prepareAndPositionSoftBuffer(ms, elements);
+	prepareAndPositionSoftBuffer(ms, elements, screen);
 
 	switch(renderSoftMethod) {
 		case RENDER_SOFT_METHOD_GOURAUD:
@@ -1001,7 +997,7 @@ static void renderMeshSoft(Mesh *ms, ScreenElement *elements, Screen *screen)
 
 	int *index = ms->index;
 
-	prepareMeshSoftRender(ms, elements);
+	prepareMeshSoftRender(ms, elements, screen);
 
 	for (i=0; i<ms->polysNum; ++i) {
 		e0 = &elements[*index++];
@@ -1023,20 +1019,41 @@ static void renderMeshSoft(Mesh *ms, ScreenElement *elements, Screen *screen)
 	}
 }
 
-static void renderSoftBufferToScreen(Screen *screen)
+static void renderSoftBufferToScreen8(Screen *screen)
 {
-	int y;
+	int x,y;
+	const int srcWidth = softBuffer.width;
 	const int srcHeight = softBuffer.height;
-	const int stride = softBuffer.stride;
-	const int screenStride = screen->width;
+	const int screenWidth = screen->width;
 
 	uint8 *src = (uint8*)softBuffer.data;
-	uint8 *dst = (uint8*)screen->data + softBuffer.posY * screenStride + softBuffer.posX;
+	uint8 *dst = (uint8*)screen->data + softBuffer.posY * screenWidth + softBuffer.posX;
 
 	for (y=0; y<srcHeight; ++y) {
-		memcpy(dst, src, stride);
-		src += stride;
-		dst += screenStride;
+		for (x=0; x<srcWidth; ++x) {
+			*(dst+x) = *(src+x);
+		}
+		src += srcWidth;
+		dst += screenWidth;
+	}
+}
+
+static void renderSoftBufferToScreen16(Screen *screen)
+{
+	int x,y;
+	const int srcWidth = softBuffer.width;
+	const int srcHeight = softBuffer.height;
+	const int screenWidth = screen->width;
+
+	uint16 *src = (uint16*)softBuffer.data;
+	uint16 *dst = (uint16*)screen->data + softBuffer.posY * screenWidth + softBuffer.posX;
+
+	for (y=0; y<srcHeight; ++y) {
+		for (x=0; x<srcWidth; ++x) {
+			*(dst+x) = *(src+x);
+		}
+		src += srcWidth;
+		dst += screenWidth;
 	}
 }
 
@@ -1047,7 +1064,7 @@ static void renderMeshSoftWireframe(Mesh *ms, ScreenElement *elements, Screen *s
 	int *lineIndex = ms->lineIndex;
 	int i;
 
-	prepareMeshSoftRender(ms, elements);
+	prepareMeshSoftRender(ms, elements, screen);
 
 	for (i=0; i<ms->linesNum; ++i) {
 		e0 = &elements[*lineIndex++];
@@ -1065,7 +1082,12 @@ void renderTransformedMeshSoft(Mesh *ms, ScreenElement *elements, Screen *screen
 	} else {
 		renderMeshSoft(ms, elements, screen);
 	}
-	renderSoftBufferToScreen(screen);
+
+	if (screen->bpp==8) {
+		renderSoftBufferToScreen8(screen);
+	} else if (screen->bpp==16) {
+		renderSoftBufferToScreen16(screen);
+	}
 }
 
 void setRenderSoftMethod(int method)

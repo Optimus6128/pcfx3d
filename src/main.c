@@ -15,7 +15,7 @@ Screen *screen;
 
 int main()
 {
-	screen = initDisplay(SCREEN_WIDTH, SCREEN_HEIGHT, 8);
+	screen = initDisplay(SCREEN_WIDTH, SCREEN_HEIGHT, 16);
 
 	initTimer();
 	initInput();
