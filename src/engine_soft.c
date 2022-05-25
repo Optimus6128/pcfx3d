@@ -20,7 +20,27 @@ typedef struct Edge
 	int u,v;
 }Edge;
 
+typedef struct RectArea
+{
+	int posX;
+	int posY;
+	int width;
+	int height;
+}RectArea;
+
+typedef struct SoftBuffer
+{
+	int width;
+	int height;
+	int stride;
+	int posX;
+	int posY;
+	uint8 *data;
+}SoftBuffer;
+
 static int renderSoftMethod = RENDER_SOFT_METHOD_GOURAUD;
+
+SoftBuffer softBuffer;
 
 static Edge *leftEdge;
 static Edge *rightEdge;
@@ -33,11 +53,14 @@ static uint16 *gouraudColorShades;
 static uint16 *activeGradient = NULL;
 static Texture *activeTexture = NULL;
 
+static int minX, maxX, minY, maxY;
+static int softBufferMaxSize;
+
 #define LN_BASE 8
 #define LN_AND ((1 << LN_BASE) - 1)
 
 
-static void(*fillEdges)(int yMin, int yMax, Screen *screen);
+static void(*fillEdges)(int y0, int y1);
 static void(*prepareEdgeList) (ScreenElement *e0, ScreenElement *e1, Screen *screen);
 
 
@@ -188,11 +211,7 @@ static void prepareEdgeListGouraud(ScreenElement *e0, ScreenElement *e1, Screen 
 {
 	Edge *edgeListToWrite;
 	ScreenElement *eTemp;
-
-	const int screenWidth = screen->width;
 	const int screenHeight = screen->height;
-
-	if (e0->y == e1->y) return;
 
 	// Assumes CCW
 	if (e0->y < e1->y) {
@@ -231,7 +250,6 @@ static void prepareEdgeListGouraud(ScreenElement *e0, ScreenElement *e1, Screen 
         edgeListToWrite = &edgeListToWrite[y0];
         do {
 			int x = FIXED_TO_INT(fx, FP_BASE);
-			CLAMP(x, 0, screenWidth-1)
 			edgeListToWrite->x = x;
 			edgeListToWrite->c = fc;
             ++edgeListToWrite;
@@ -245,11 +263,7 @@ static void prepareEdgeListEnvmap(ScreenElement *e0, ScreenElement *e1, Screen *
 {
 	Edge *edgeListToWrite;
 	ScreenElement *eTemp;
-
-	const int screenWidth = screen->width;
 	const int screenHeight = screen->height;
-
-	if (e0->y == e1->y) return;
 
 	// Assumes CCW
 	if (e0->y < e1->y) {
@@ -291,7 +305,6 @@ static void prepareEdgeListEnvmap(ScreenElement *e0, ScreenElement *e1, Screen *
         edgeListToWrite = &edgeListToWrite[y0];
         do {
 			int x = FIXED_TO_INT(fx, FP_BASE);
-			CLAMP(x, 0, screenWidth-1)
 			edgeListToWrite->x = x;
 			edgeListToWrite->u = fu;
 			edgeListToWrite->v = fv;
@@ -307,11 +320,7 @@ static void prepareEdgeListGouraudEnvmap(ScreenElement *e0, ScreenElement *e1, S
 {
 	Edge *edgeListToWrite;
 	ScreenElement *eTemp;
-
-	const int screenWidth = screen->width;
 	const int screenHeight = screen->height;
-
-	if (e0->y == e1->y) return;
 
 	// Assumes CCW
 	if (e0->y < e1->y) {
@@ -356,7 +365,6 @@ static void prepareEdgeListGouraudEnvmap(ScreenElement *e0, ScreenElement *e1, S
         edgeListToWrite = &edgeListToWrite[y0];
         do {
 			int x = FIXED_TO_INT(fx, FP_BASE);
-			CLAMP(x, 0, screenWidth-1)
 			edgeListToWrite->x = x;
 			edgeListToWrite->c = fc;
 			edgeListToWrite->u = fu;
@@ -370,14 +378,14 @@ static void prepareEdgeListGouraudEnvmap(ScreenElement *e0, ScreenElement *e1, S
     }
 }
 
-static void fillGouraudEdges8(int yMin, int yMax, Screen *screen)
+static void fillGouraudEdges8(int y0, int y1)
 {
-	const int screenWidth = screen->width;
-	uint8 *vram8 = (uint8*)screen->data + yMin * screenWidth;
+	const int stride8 = softBuffer.stride;
+	uint8 *vram8 = (uint8*)softBuffer.data + y0 * stride8;
 
-	int count = yMax - yMin + 1;
-	Edge *le = &leftEdge[yMin];
-	Edge *re = &rightEdge[yMin];
+	int count = y1 - y0 + 1;
+	Edge *le = &leftEdge[y0];
+	Edge *re = &rightEdge[y0];
 	do {
 		const int xl = le->x;
 		const int cl = le->c;
@@ -432,18 +440,18 @@ static void fillGouraudEdges8(int yMin, int yMax, Screen *screen)
 
 		++le;
 		++re;
-		vram8 += screenWidth;
+		vram8 += stride8;
 	} while(--count > 0);
 }
 
-static void fillGouraudEdges16(int yMin, int yMax, Screen *screen)
+static void fillGouraudEdges16(int y0, int y1)
 {
-	const int screenWidth = screen->width;
-	uint16 *vram16 = (uint16*)screen->data + yMin * screenWidth;
+	const int stride16 = softBuffer.stride;
+	uint16 *vram16 = (uint16*)softBuffer.data + y0 * stride16;
 
-	int count = yMax - yMin + 1;
-	Edge *le = &leftEdge[yMin];
-	Edge *re = &rightEdge[yMin];
+	int count = y1 - y0 + 1;
+	Edge *le = &leftEdge[y0];
+	Edge *re = &rightEdge[y0];
 	do {
 		const int xl = le->x;
 		const int cl = le->c;
@@ -493,18 +501,18 @@ static void fillGouraudEdges16(int yMin, int yMax, Screen *screen)
 
 		++le;
 		++re;
-		vram16 += screenWidth;
+		vram16 += stride16;
 	} while(--count > 0);
 }
 
-static void fillEnvmapEdges8(int yMin, int yMax, Screen *screen)
+static void fillEnvmapEdges8(int y0, int y1)
 {
-	const int screenWidth = screen->width;
-	uint8 *vram8 = (uint8*)screen->data + yMin * screenWidth;
+	const int stride8 = softBuffer.stride;
+	uint8 *vram8 = (uint8*)softBuffer.data + y0 * stride8;
 
-	int count = yMax - yMin + 1;
-	Edge *le = &leftEdge[yMin];
-	Edge *re = &rightEdge[yMin];
+	int count = y1 - y0 + 1;
+	Edge *le = &leftEdge[y0];
+	Edge *re = &rightEdge[y0];
 
 	const int texHeightShift = activeTexture->hShift;
 	uint8* texData = (uint8*)activeTexture->bitmap;
@@ -572,18 +580,18 @@ static void fillEnvmapEdges8(int yMin, int yMax, Screen *screen)
 
 		++le;
 		++re;
-		vram8 += screenWidth;
+		vram8 += stride8;
 	} while(--count > 0);
 }
 
-static void fillEnvmapEdges16(int yMin, int yMax, Screen *screen)
+static void fillEnvmapEdges16(int y0, int y1)
 {
-	const int screenWidth = screen->width;
-	uint16 *vram16 = (uint16*)screen->data + yMin * screenWidth;
+	const int stride16 = softBuffer.stride;
+	uint16 *vram16 = (uint16*)softBuffer.data + y0 * stride16;
 
-	int count = yMax - yMin + 1;
-	Edge *le = &leftEdge[yMin];
-	Edge *re = &rightEdge[yMin];
+	int count = y1 - y0 + 1;
+	Edge *le = &leftEdge[y0];
+	Edge *re = &rightEdge[y0];
 
 	const int texHeightShift = activeTexture->hShift;
 	uint16* texData = (uint16*)activeTexture->bitmap;
@@ -644,18 +652,19 @@ static void fillEnvmapEdges16(int yMin, int yMax, Screen *screen)
 
 		++le;
 		++re;
-		vram16 += screenWidth;
+		vram16 += stride16;
 	} while(--count > 0);
 }
 
-static void fillGouraudEnvmapEdges8(int yMin, int yMax, Screen *screen)
+static void fillGouraudEnvmapEdges8(int y0, int y1)
 {
-	const int screenWidth = screen->width;
-	uint8 *vram8 = (uint8*)screen->data + yMin * screenWidth;
+	const int stride8 = softBuffer.stride;
 
-	int count = yMax - yMin + 1;
-	Edge *le = &leftEdge[yMin];
-	Edge *re = &rightEdge[yMin];
+	uint8 *vram8 = (uint8*)softBuffer.data + y0 * stride8;
+
+	int count = y1 - y0 + 1;
+	Edge *le = &leftEdge[y0];
+	Edge *re = &rightEdge[y0];
 
 	const int texHeightShift = activeTexture->hShift;
 	uint8* texData = (uint8*)activeTexture->bitmap;
@@ -738,18 +747,18 @@ static void fillGouraudEnvmapEdges8(int yMin, int yMax, Screen *screen)
 
 		++le;
 		++re;
-		vram8 += screenWidth;
+		vram8 += stride8;
 	} while(--count > 0);
 }
 
-static void fillGouraudEnvmapEdges16(int yMin, int yMax, Screen *screen)
+static void fillGouraudEnvmapEdges16(int y0, int y1)
 {
-	const int screenWidth = screen->width;
-	uint16 *vram16 = (uint16*)screen->data + yMin * screenWidth;
+	const int stride16 = softBuffer.stride;
+	uint16 *vram16 = (uint16*)softBuffer.data + y0 * stride16;
 
-	int count = yMax - yMin + 1;
-	Edge *le = &leftEdge[yMin];
-	Edge *re = &rightEdge[yMin];
+	int count = y1 - y0 + 1;
+	Edge *le = &leftEdge[y0];
+	Edge *re = &rightEdge[y0];
 
 	const int texHeightShift = activeTexture->hShift;
 	uint16* texData = (uint16*)activeTexture->bitmap;
@@ -834,30 +843,121 @@ static void fillGouraudEnvmapEdges16(int yMin, int yMax, Screen *screen)
 
 		++le;
 		++re;
-		vram16 += screenWidth;
+		vram16 += stride16;
 	} while(--count > 0);
 }
 
 static void drawTriangle(ScreenElement *e0, ScreenElement *e1, ScreenElement *e2, Screen *screen)
 {
-	int yMin = e0->y;
-	int yMax = yMin;
+	int y0 = e0->y;
+	int y1 = y0;
 
 	prepareEdgeList(e0, e1, screen);
 	prepareEdgeList(e1, e2, screen);
 	prepareEdgeList(e2, e0, screen);
 
-	if (e1->y < yMin) yMin = e1->y; if (e1->y > yMax) yMax = e1->y;
-	if (e2->y < yMin) yMin = e2->y; if (e2->y > yMax) yMax = e2->y;
+	if (e1->y < y0) y0 = e1->y; if (e1->y > y1) y1 = e1->y;
+	if (e2->y < y0) y0 = e2->y; if (e2->y > y1) y1 = e2->y;
 
-	if (yMin < 0) yMin = 0;
-	if (yMax > screen->height-1) yMax = screen->height-1;
+	if (y0 < 0) y0 = 0;
+	if (y1 > screen->height-1) y1 = screen->height-1;
 
-	fillEdges(yMin, yMax, screen);
+	fillEdges(y0, y1);
+}
+static void updateSoftBufferVariables(RectArea *bufferArea)
+{
+	const int stride = bufferArea->width;	// might be 4 bytes aligned in the future
+	const int currentBufferSize = bufferArea->width * bufferArea->height;
+
+	softBuffer.width = bufferArea->width;
+	softBuffer.height = bufferArea->height;
+	softBuffer.stride = stride;
+	softBuffer.posX = bufferArea->posX;
+	softBuffer.posY = bufferArea->posY;
+
+	if (currentBufferSize <= softBufferMaxSize) {
+		memset(softBuffer.data, 0, currentBufferSize);
+	}
+}
+
+static RectArea *createUnionOfLastTwoBuffersForArea(RectArea *currRectArea)
+{
+	static RectArea finalRectArea;
+	static RectArea prevRectArea;
+	static bool firstTime = true;
+
+	const int currRightX = currRectArea->posX + currRectArea->width;
+	const int currDownY = currRectArea->posY + currRectArea->height;
+
+	int finalRightX, finalDownY;
+
+	if (firstTime) {
+		prevRectArea.posX = currRectArea->posX;
+		prevRectArea.posY = currRectArea->posY;
+		prevRectArea.width = currRectArea->width;
+		prevRectArea.height = currRectArea->height;
+		firstTime = false;
+	}
+
+	finalRightX = prevRectArea.posX + prevRectArea.width;
+	finalDownY = prevRectArea.posY + prevRectArea.height;
+	if (finalRightX < currRightX) finalRightX = currRightX;
+	if (finalDownY < currDownY) finalDownY = currDownY;
+
+	if (prevRectArea.posX < currRectArea->posX) finalRectArea.posX = prevRectArea.posX; else finalRectArea.posX = currRectArea->posX;
+	if (prevRectArea.posY < currRectArea->posY) finalRectArea.posY = prevRectArea.posY; else finalRectArea.posY = currRectArea->posY;
+
+	finalRectArea.width = finalRightX - finalRectArea.posX;
+	finalRectArea.height = finalDownY - finalRectArea.posY;
+
+	// Copy curr to prev for next frame
+	prevRectArea.posX = currRectArea->posX;
+	prevRectArea.posY = currRectArea->posY;
+	prevRectArea.width = currRectArea->width;
+	prevRectArea.height = currRectArea->height;
+
+	return &finalRectArea;
+}
+
+static void prepareAndPositionSoftBuffer(Mesh *ms, ScreenElement *elements)
+{
+	int i;
+	RectArea currRectArea;
+	RectArea *finalRectArea;
+	const int count = ms->verticesNum;
+
+	minX = maxX = elements[0].x;
+	minY = maxY = elements[0].y;
+
+	for (i=1; i<count; ++i) {
+		const int x = elements[i].x;
+		const int y = elements[i].y;
+		if (x < minX) minX = x;
+		if (x > maxX) maxX = x;
+		if (y < minY) minY = y;
+		if (y > maxY) maxY = y;
+	}
+
+	currRectArea.posX = minX;
+	currRectArea.posY = minY;
+	currRectArea.width = maxX - minX + 1;
+	currRectArea.height = maxY - minY + 1;
+
+	finalRectArea = createUnionOfLastTwoBuffersForArea(&currRectArea);
+
+	// Offset element positions to upper left min corner
+	for (i=0; i<count; ++i) {
+		elements[i].x -= finalRectArea->posX;
+		elements[i].y -= finalRectArea->posY;
+	}
+
+	updateSoftBufferVariables(finalRectArea);
 }
 
 static void prepareMeshSoftRender(Mesh *ms, ScreenElement *elements)
 {
+	prepareAndPositionSoftBuffer(ms, elements);
+
 	switch(renderSoftMethod) {
 		case RENDER_SOFT_METHOD_GOURAUD:
 		{
@@ -923,6 +1023,23 @@ static void renderMeshSoft(Mesh *ms, ScreenElement *elements, Screen *screen)
 	}
 }
 
+static void renderSoftBufferToScreen(Screen *screen)
+{
+	int y;
+	const int srcHeight = softBuffer.height;
+	const int stride = softBuffer.stride;
+	const int screenStride = screen->width;
+
+	uint8 *src = (uint8*)softBuffer.data;
+	uint8 *dst = (uint8*)screen->data + softBuffer.posY * screenStride + softBuffer.posX;
+
+	for (y=0; y<srcHeight; ++y) {
+		memcpy(dst, src, stride);
+		src += stride;
+		dst += screenStride;
+	}
+}
+
 static void renderMeshSoftWireframe(Mesh *ms, ScreenElement *elements, Screen *screen)
 {
 	ScreenElement *e0, *e1;
@@ -948,6 +1065,7 @@ void renderTransformedMeshSoft(Mesh *ms, ScreenElement *elements, Screen *screen
 	} else {
 		renderMeshSoft(ms, elements, screen);
 	}
+	renderSoftBufferToScreen(screen);
 }
 
 void setRenderSoftMethod(int method)
@@ -968,4 +1086,7 @@ void initEngineSoft(Screen *screen)
 	if (!lineColorShades[3]) lineColorShades[3] = crateColorShades(255,128,192, COLOR_GRADIENTS_SIZE);
 
 	if (!gouraudColorShades) gouraudColorShades = crateColorShades(216,232,255, COLOR_GRADIENTS_SIZE);
+
+	softBufferMaxSize = 4 * screen->width * screen->height;
+	softBuffer.data = (uint8*)malloc(softBufferMaxSize);
 }
