@@ -28,7 +28,7 @@ static Object3D *softObj;
 
 static int renderSoftMethodIndex = RENDER_SOFT_METHOD_GOURAUD;
 
-static bool autoRot = false;
+static bool autoRot = true;
 
  
 static void effectMeshSoftInit(int bpp)

@@ -862,10 +862,71 @@ static void drawTriangle(ScreenElement *e0, ScreenElement *e1, ScreenElement *e2
 
 	fillEdges(y0, y1);
 }
+
+static void myLameMemset(void *dst, uchar c, int count)
+{
+	const int count32 = count >> 2;
+	int bytesLeft = count - (count32 << 2);
+	int count32_unroll8 = count32 >> 3;
+	int count32_left = count32 - (count32_unroll8 << 3);
+
+	uint32 *dst32 = (uint32*)dst;
+	uint8 *dst8;
+
+	const uint32 c32 = (c << 24) | (c << 16) | (c << 8) | c;
+
+
+	while(count32_unroll8-- > 0) {
+		*dst32++ = c32;
+		*dst32++ = c32;
+		*dst32++ = c32;
+		*dst32++ = c32;
+		*dst32++ = c32;
+		*dst32++ = c32;
+		*dst32++ = c32;
+		*dst32++ = c32;
+	};
+	while(count32_left-- > 0) {
+		*dst32++ = c32;
+	};
+
+	dst8 = (uint8*)dst32;
+	while(bytesLeft-- > 0) {
+		*dst8++ = c;
+	};
+}
+
+static void myLameMemcpy(void *dst, void *src, int count)
+{
+	const int count32 = count >> 2;
+	int bytesLeft = count - (count32 << 2);
+	int count32_unroll4 = count32 >> 2;
+	int count32_left = count32 - (count32_unroll4 << 2);
+
+	uint32 *src32 = (uint32*)src;
+	uint32 *dst32 = (uint32*)dst;
+	uint8 *src8, *dst8;
+
+	while(count32_unroll4-- > 0) {
+		*dst32++ = *src32++;
+		*dst32++ = *src32++;
+		*dst32++ = *src32++;
+		*dst32++ = *src32++;
+	};
+	while(count32_left-- > 0) {
+		*dst32++ = *src32++;
+	};
+
+	src8 = (uint8*)src32;
+	dst8 = (uint8*)dst32;
+	while(bytesLeft-- > 0) {
+		*dst8++ = *src8++;
+	};
+}
+
 static void updateSoftBufferVariables(RectArea *bufferArea, Screen *screen)
 {
 	const int currentBufferSize = (bufferArea->width * bufferArea->height * screen->bpp) >> 3;
-	uint32 *dst = (uint32*)softBuffer.data;
 
 	softBuffer.width = bufferArea->width;
 	softBuffer.height = bufferArea->height;
@@ -873,10 +934,7 @@ static void updateSoftBufferVariables(RectArea *bufferArea, Screen *screen)
 	softBuffer.posY = bufferArea->posY;
 
 	if (currentBufferSize <= softBufferMaxSize) {
-		int count = currentBufferSize >> 2;
-		do {
-			*dst++ = 0;
-		}while(--count>0);
+		myLameMemset(softBuffer.data, 0, currentBufferSize);
 	}
 }
 
@@ -1038,41 +1096,22 @@ static void renderMeshSoft(Mesh *ms, ScreenElement *elements, Screen *screen)
 	}
 }
 
-static void renderSoftBufferToScreen8(Screen *screen)
+static void renderSoftBufferToScreen(Screen *screen)
 {
-	int x,y;
+	int y;
+	const int bytesPerPixel = screen->bpp >> 3;
 	const int srcWidth = softBuffer.width;
 	const int srcHeight = softBuffer.height;
-	const int screenWidth = screen->width;
+	const int srcStride = srcWidth * bytesPerPixel;
+	const int screenStride = screen->width * bytesPerPixel;
 
 	uint8 *src = (uint8*)softBuffer.data;
-	uint8 *dst = (uint8*)screen->data + softBuffer.posY * screenWidth + softBuffer.posX;
+	uint8 *dst = (uint8*)screen->data + softBuffer.posY * screenStride + bytesPerPixel * softBuffer.posX;
 
 	for (y=0; y<srcHeight; ++y) {
-		for (x=0; x<srcWidth; ++x) {
-			*(dst+x) = *(src+x);
-		}
-		src += srcWidth;
-		dst += screenWidth;
-	}
-}
-
-static void renderSoftBufferToScreen16(Screen *screen)
-{
-	int x,y;
-	const int srcWidth = softBuffer.width;
-	const int srcHeight = softBuffer.height;
-	const int screenWidth = screen->width;
-
-	uint16 *src = (uint16*)softBuffer.data;
-	uint16 *dst = (uint16*)screen->data + softBuffer.posY * screenWidth + softBuffer.posX;
-
-	for (y=0; y<srcHeight; ++y) {
-		for (x=0; x<srcWidth; ++x) {
-			*(dst+x) = *(src+x);
-		}
-		src += srcWidth;
-		dst += screenWidth;
+		myLameMemcpy(dst, src, srcStride);
+		src += srcStride;
+		dst += screenStride;
 	}
 }
 
@@ -1101,12 +1140,7 @@ void renderTransformedMeshSoft(Mesh *ms, ScreenElement *elements, Screen *screen
 	} else {
 		renderMeshSoft(ms, elements, screen);
 	}
-
-	if (screen->bpp==8) {
-		renderSoftBufferToScreen8(screen);
-	} else if (screen->bpp==16) {
-		renderSoftBufferToScreen16(screen);
-	}
+	renderSoftBufferToScreen(screen);
 }
 
 void setRenderSoftMethod(int method)
