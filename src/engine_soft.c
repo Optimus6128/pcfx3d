@@ -880,6 +880,20 @@ static void updateSoftBufferVariables(RectArea *bufferArea, Screen *screen)
 	}
 }
 
+// align 4 bytes width to avoid glitches or performance when memcpy lines to vram
+static void alignRectArea(RectArea *rectArea, int bpp)
+{
+	int offX;
+	const int origX = rectArea->posX;
+
+	int bt = 3;
+	if (bpp==16) bt = 1;
+
+	rectArea->posX = origX & ~bt;
+	offX = origX - rectArea->posX;
+	rectArea->width = (rectArea->width + offX + bt) & ~bt;
+}
+
 static RectArea *createUnionOfLastTwoBuffersForArea(RectArea *currRectArea)
 {
 	static RectArea finalRectArea;
@@ -945,14 +959,13 @@ static void prepareAndPositionSoftBuffer(Mesh *ms, ScreenElement *elements, Scre
 
 	finalRectArea = createUnionOfLastTwoBuffersForArea(&currRectArea);
 	
-	finalRectArea->width = (finalRectArea->width + 3) & ~3;	// align 4 bytes width to avoid glitches or performance when memcpy lines to vram
+	alignRectArea(finalRectArea, screen->bpp);
 
 	// Offset element positions to upper left min corner
 	for (i=0; i<count; ++i) {
 		elements[i].x -= finalRectArea->posX;
 		elements[i].y -= finalRectArea->posY;
 	}
-
 	updateSoftBufferVariables(finalRectArea, screen);
 }
 
