@@ -51,3 +51,64 @@ void setPalGradient(int c0, int c1, int r0, int g0, int b0, int r1, int g1, int 
 		b0 += db;
 	}
 }
+
+void myMemset(void *dst, uchar c, int count)
+{
+	const int count32 = count >> 2;
+	int bytesLeft = count - (count32 << 2);
+	int count32_unroll8 = count32 >> 3;
+	int count32_left = count32 - (count32_unroll8 << 3);
+
+	uint32 *dst32 = (uint32*)dst;
+	uint8 *dst8;
+
+	const uint32 c32 = (c << 24) | (c << 16) | (c << 8) | c;
+
+
+	while(count32_unroll8-- > 0) {
+		*dst32++ = c32;
+		*dst32++ = c32;
+		*dst32++ = c32;
+		*dst32++ = c32;
+		*dst32++ = c32;
+		*dst32++ = c32;
+		*dst32++ = c32;
+		*dst32++ = c32;
+	};
+	while(count32_left-- > 0) {
+		*dst32++ = c32;
+	};
+
+	dst8 = (uint8*)dst32;
+	while(bytesLeft-- > 0) {
+		*dst8++ = c;
+	};
+}
+
+void myMemcpy(void *dst, void *src, int count)
+{
+	const int count32 = count >> 2;
+	int bytesLeft = count - (count32 << 2);
+	int count32_unroll4 = count32 >> 2;
+	int count32_left = count32 - (count32_unroll4 << 2);
+
+	uint32 *src32 = (uint32*)src;
+	uint32 *dst32 = (uint32*)dst;
+	uint8 *src8, *dst8;
+
+	while(count32_unroll4-- > 0) {
+		*dst32++ = *src32++;
+		*dst32++ = *src32++;
+		*dst32++ = *src32++;
+		*dst32++ = *src32++;
+	};
+	while(count32_left-- > 0) {
+		*dst32++ = *src32++;
+	};
+
+	src8 = (uint8*)src32;
+	dst8 = (uint8*)dst32;
+	while(bytesLeft-- > 0) {
+		*dst8++ = *src8++;
+	};
+}

@@ -1,5 +1,6 @@
 #include "main.h"
 #include "tools.h"
+#include "bitstest.h"
 
 #include "engine_main.h"
 #include "engine_mesh.h"
@@ -863,67 +864,6 @@ static void drawTriangle(ScreenElement *e0, ScreenElement *e1, ScreenElement *e2
 	fillEdges(y0, y1);
 }
 
-static void myLameMemset(void *dst, uchar c, int count)
-{
-	const int count32 = count >> 2;
-	int bytesLeft = count - (count32 << 2);
-	int count32_unroll8 = count32 >> 3;
-	int count32_left = count32 - (count32_unroll8 << 3);
-
-	uint32 *dst32 = (uint32*)dst;
-	uint8 *dst8;
-
-	const uint32 c32 = (c << 24) | (c << 16) | (c << 8) | c;
-
-
-	while(count32_unroll8-- > 0) {
-		*dst32++ = c32;
-		*dst32++ = c32;
-		*dst32++ = c32;
-		*dst32++ = c32;
-		*dst32++ = c32;
-		*dst32++ = c32;
-		*dst32++ = c32;
-		*dst32++ = c32;
-	};
-	while(count32_left-- > 0) {
-		*dst32++ = c32;
-	};
-
-	dst8 = (uint8*)dst32;
-	while(bytesLeft-- > 0) {
-		*dst8++ = c;
-	};
-}
-
-static void myLameMemcpy(void *dst, void *src, int count)
-{
-	const int count32 = count >> 2;
-	int bytesLeft = count - (count32 << 2);
-	int count32_unroll4 = count32 >> 2;
-	int count32_left = count32 - (count32_unroll4 << 2);
-
-	uint32 *src32 = (uint32*)src;
-	uint32 *dst32 = (uint32*)dst;
-	uint8 *src8, *dst8;
-
-	while(count32_unroll4-- > 0) {
-		*dst32++ = *src32++;
-		*dst32++ = *src32++;
-		*dst32++ = *src32++;
-		*dst32++ = *src32++;
-	};
-	while(count32_left-- > 0) {
-		*dst32++ = *src32++;
-	};
-
-	src8 = (uint8*)src32;
-	dst8 = (uint8*)dst32;
-	while(bytesLeft-- > 0) {
-		*dst8++ = *src8++;
-	};
-}
-
 static void updateSoftBufferVariables(RectArea *bufferArea, Screen *screen)
 {
 	const int currentBufferSize = (bufferArea->width * bufferArea->height * screen->bpp) >> 3;
@@ -933,8 +873,8 @@ static void updateSoftBufferVariables(RectArea *bufferArea, Screen *screen)
 	softBuffer.posX = bufferArea->posX;
 	softBuffer.posY = bufferArea->posY;
 
-	if (currentBufferSize <= softBufferMaxSize) {
-		myLameMemset(softBuffer.data, 0, currentBufferSize);
+	if (currentBufferSize > 0 && currentBufferSize <= softBufferMaxSize) {
+		myMemset(softBuffer.data, 0x1f, currentBufferSize);
 	}
 }
 
@@ -1109,7 +1049,7 @@ static void renderSoftBufferToScreen(Screen *screen)
 	uint8 *dst = (uint8*)screen->data + softBuffer.posY * screenStride + bytesPerPixel * softBuffer.posX;
 
 	for (y=0; y<srcHeight; ++y) {
-		myLameMemcpy(dst, src, srcStride);
+		myMemcpy(dst, src, srcStride);
 		src += srcStride;
 		dst += screenStride;
 	}

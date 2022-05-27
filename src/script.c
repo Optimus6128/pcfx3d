@@ -3,6 +3,7 @@
 #include "input.h"
 
 #include "mathutil.h"
+#include "bitstest.h"
 
 #include "engine_main.h"
 #include "engine_soft.h"
@@ -11,6 +12,8 @@
 
 #include "procgen_mesh.h"
 #include "procgen_texture.h"
+
+#include "tools.h"
 
 
 static int rotX=0, rotY=0, rotZ=0;
@@ -35,12 +38,12 @@ static void effectMeshSoftInit(int bpp)
 {
 	int i;
 	const int numPoints = 8;
-	const int size = 64;
+	const int size = 96;
 	MeshgenParams params;
 
 	Point2Darray *ptArray = initPoint2Darray(numPoints);
 	
-	int meshType = MESH_SQUARE_COLUMNOID;
+	int meshType = MESH_CUBE; //MESH_SQUARE_COLUMNOID;
 
 	for (i=0; i<numPoints; ++i) {
 		const int y = (size/4) * (numPoints/2 - i);
