@@ -51,17 +51,18 @@ static void effectMeshSoftInit(int bpp)
 		addPoint2D(ptArray, r,y);
 	}
 
-	cloudTex8 = initGenTexture(128, 128, 8, NULL, 1, TEXGEN_CLOUDS, false, NULL);
-	cloudTex16 = initGenTexture(128, 128, 16, NULL, 1, TEXGEN_CLOUDS, false, NULL);
 	params = makeMeshgenSquareColumnoidParams(size, ptArray->points, numPoints, true, true);
 
-	softMesh8 = initGenMesh(meshType, params, MESH_OPTION_RENDER_SOFT8 | MESH_OPTION_ENABLE_LIGHTING | MESH_OPTION_ENABLE_ENVMAP, cloudTex8);
-	softMesh16 = initGenMesh(meshType, params, MESH_OPTION_RENDER_SOFT16 | MESH_OPTION_ENABLE_LIGHTING | MESH_OPTION_ENABLE_ENVMAP, cloudTex16);
-
 	if (bpp==8) {
+		cloudTex8 = initGenTexture(64, 64, 8, NULL, 1, TEXGEN_CLOUDS, false, NULL);
+		softMesh8 = initGenMesh(meshType, params, MESH_OPTION_RENDER_SOFT8 | MESH_OPTION_ENABLE_LIGHTING | MESH_OPTION_ENABLE_ENVMAP, cloudTex8);
+
 		softObj = initObject3D(softMesh8);
 		setObject3Dmesh(softObj, softMesh8);
 	} else {
+		cloudTex16 = initGenTexture(64, 64, 16, NULL, 1, TEXGEN_CLOUDS, false, NULL);
+		softMesh16 = initGenMesh(meshType, params, MESH_OPTION_RENDER_SOFT16 | MESH_OPTION_ENABLE_LIGHTING | MESH_OPTION_ENABLE_ENVMAP, cloudTex16);
+
 		softObj = initObject3D(softMesh16);
 		setObject3Dmesh(softObj, softMesh16);
 	}
@@ -135,6 +136,8 @@ void scriptInit(Screen *screen)
 		}
 	}
 
+	//mem_set(screen->data, 0x0f, screen->width * (screen->height-128)); // destroys things, why?
+	
 	effectMeshSoftInit(screen->bpp);
 }
 

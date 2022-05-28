@@ -874,7 +874,8 @@ static void updateSoftBufferVariables(RectArea *bufferArea, Screen *screen)
 	softBuffer.posY = bufferArea->posY;
 
 	if (currentBufferSize > 0 && currentBufferSize <= softBufferMaxSize) {
-		myMemset(softBuffer.data, 0x1f, currentBufferSize);
+		myMemset(softBuffer.data, 0, currentBufferSize);
+		//mem_set(softBuffer.data, 0, currentBufferSize);
 	}
 }
 
@@ -1050,6 +1051,7 @@ static void renderSoftBufferToScreen(Screen *screen)
 
 	for (y=0; y<srcHeight; ++y) {
 		myMemcpy(dst, src, srcStride);
+		//mem_cpy(dst, src, srcStride);
 		src += srcStride;
 		dst += screenStride;
 	}
