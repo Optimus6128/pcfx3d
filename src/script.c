@@ -80,8 +80,6 @@ static void inputScript()
 		rotZ+=3;
 	}
 
-	updateInput();
-
 	if (isJoyButtonPressed(JOY_LEFT)) {
 		rotY -= rotVel;
 	}
@@ -135,14 +133,13 @@ void scriptInit(Screen *screen)
 			eris_tetsu_set_palette(i, RGB2YUV(c, c, c));
 		}
 	}
-
-	//mem_set(screen->data, 0x0f, screen->width * (screen->height-128)); // destroys things, why?
 	
 	effectMeshSoftInit(screen->bpp);
 }
 
 void scriptRun(Screen *screen, int t)
 {
+	updateInput();
 	inputScript();
 
 	setObject3Dpos(softObj, 0, 0, zoom);

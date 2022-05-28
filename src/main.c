@@ -8,6 +8,7 @@
 #include "fastking.h"
 
 #include "engine_main.h"
+#include "engine_soft.h"
 
 int nframe = 0;
 

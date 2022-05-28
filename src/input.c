@@ -16,7 +16,7 @@ void initInput()
 	eris_pad_init(0);
 }
 
-static void updateJoypad()
+void updateInput()
 {
 	int i;
 	uint32 paddata = eris_pad_read(0);
@@ -32,11 +32,6 @@ static void updateJoypad()
 			joyButtonPressedOnce[i] = false;
 		}
 	}
-}
-
-void updateInput()
-{
-	updateJoypad();
 }
 
 bool isAnyJoyButtonPressed()

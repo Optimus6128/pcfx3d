@@ -26,4 +26,5 @@ void initEngineSoft(Screen *screen);
 void renderTransformedMeshSoft(Mesh *ms, ScreenElement *elements, Screen *screen);
 
 void setRenderSoftMethod(int method);
+
 #endif

@@ -15,7 +15,7 @@ typedef ushort uint16;
 typedef unsigned long ulong;
 typedef ulong uint32;
 
-typedef	uint8 Boolean;
+typedef	uint32 Boolean;
 typedef Boolean	bool;
 
 #define TRUE	((Boolean)1)
