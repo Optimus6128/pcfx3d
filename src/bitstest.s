@@ -7,7 +7,6 @@ _mem_cpy:
 	st.w r27, 4[sp]
 	st.w r28, 8[sp]
 	st.w r29, 12[sp]
-	st.w r30, 16[sp]
 
 	mov r6,r29
 	mov r7,r30
@@ -21,7 +20,6 @@ _mem_cpy:
 	ld.w 4[sp], r27
 	ld.w 8[sp], r28
 	ld.w 12[sp], r29
-	ld.w 16[sp], r30
 	addi 32, sp, sp
 
 	jmp	[lp]
@@ -33,7 +31,6 @@ _mem_set:
 	st.w r27, 4[sp]
 	st.w r28, 8[sp]
 	st.w r29, 12[sp]
-	st.w r30, 16[sp]
 
 	mov r6,r30
 	mov r6,r29
@@ -58,7 +55,6 @@ _mem_set:
 	ld.w 4[sp], r27
 	ld.w 8[sp], r28
 	ld.w 12[sp], r29
-	ld.w 16[sp], r30
 	addi 32, sp, sp
 
 	jmp	[lp]
