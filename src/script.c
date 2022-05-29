@@ -4,6 +4,7 @@
 
 #include "mathutil.h"
 #include "bitstest.h"
+#include "tinyfont.h"
 
 #include "engine_main.h"
 #include "engine_soft.h"
@@ -114,51 +115,48 @@ static void inputScript()
 	if (isJoyButtonPressed(JOY_LEFT)) {
 		rotY -= rotVel;
 	}
-
 	if (isJoyButtonPressed(JOY_RIGHT)) {
 		rotY += rotVel;
 	}
-
 	if (isJoyButtonPressed(JOY_UP)) {
 		rotX -= rotVel;
 	}
-
 	if (isJoyButtonPressed(JOY_DOWN)) {
 		rotX += rotVel;
 	}
 
 	if (isJoyButtonPressed(JOY_A)) {
-		rotZ += rotVel;
-	}
-
-	if (isJoyButtonPressed(JOY_B)) {
-		rotZ -= rotVel;
-	}
-
-	if (isJoyButtonPressed(JOY_D)) {
 		zoom += zoomVel;
 	}
-
-	if (isJoyButtonPressed(JOY_E)) {
+	if (isJoyButtonPressed(JOY_B)) {
 		zoom -= zoomVel;
 	}
-
 	if (isJoyButtonPressedOnce(JOY_C)) {
+		autoRot = !autoRot;
+	}
+
+	if (isJoyButtonPressedOnce(JOY_D)) {
+		renderStuff = !renderStuff;
+	}
+	if (isJoyButtonPressedOnce(JOY_E)) {
+		/*rotZ -= rotVel;*/
+		displayMethod--;
+		if (displayMethod<0) displayMethod = 4;
+	}
+	if (isJoyButtonPressedOnce(JOY_F)) {
+		/*rotZ += rotVel;*/
+		displayMethod++;
+		if (displayMethod==5) displayMethod = 0;
+	}
+
+	if (isJoyButtonPressedOnce(JOY_SELECT)) {
 		if (softObj==softCubeObj) {
 			softObj = softColumnoidObj;
 		} else {
 			softObj = softCubeObj;
 		}
 	}
-
-	if (isJoyButtonPressedOnce(JOY_F)) {
-		autoRot = !autoRot;
-	}
 	
-	if (isJoyButtonPressedOnce(JOY_SELECT)) {
-		renderStuff = !renderStuff;
-	}
-
 	if (isJoyButtonPressedOnce(JOY_START)) {
 		++renderSoftMethodIndex;
 		if (renderSoftMethodIndex == RENDER_SOFT_METHOD_NUM) renderSoftMethodIndex = 0;
@@ -190,4 +188,6 @@ void scriptRun(Screen *screen, int t)
 		setObject3Drot(softObj, rotX, rotY, rotZ);
 		renderObject3D(softObj, screen);
 	}
+
+	drawNumber(224,16, displayMethod, screen);
 }

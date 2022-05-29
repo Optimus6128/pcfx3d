@@ -18,4 +18,6 @@ void initTimer();
 void vsync();
 int getFps();
 
+extern int displayMethod;
+
 #endif
