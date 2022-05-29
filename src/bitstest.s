@@ -12,8 +12,8 @@ _mem_cpy:
 	mov r7,r30
 	shl 3,r8
 	mov r8,r28
-	mov 0,r26
-	mov 0,r27
+	mov r0,r26
+	mov r0,r27
 	movbsu
 
 	ld.w 0[sp], r26
@@ -47,8 +47,8 @@ _mem_set:
 	add -4,r8
 	shl 3,r8
 	mov r8,r28
-	mov 0,r26
-	mov 0,r27
+	mov r0,r26
+	mov r0,r27
 	movbsu
 
 	ld.w 0[sp], r26

@@ -148,15 +148,6 @@ Screen *initDisplay(int width, int height, int bpp)
 	return screen;
 }
 
-/*static void kingKramWriteC(uint16 *data, int size)
-{
-	int i;
-	size >>= 1;
-	for (i=0; i<size; ++i) {
-		eris_king_kram_write(*data++);
-	}
-}*/
-
 void writeDisplay(Screen *screen)
 {
 	const int screenSize = (screen->width * screen->height * screen->bpp) >> 3;
@@ -165,9 +156,11 @@ void writeDisplay(Screen *screen)
 	
 	if (screen->bpp==8) {
 		king_kram_write_buffer_bytes(screen->data, screenSize);
-		//kingKramWriteC(screen->data, screenSize);
 	} else {
-		king_kram_write_buffer(screen->data, screenSize);
-		//kingKramWriteC(screen->data, screenSize);
+		//king_kram_write_buffer(screen->data, screenSize);
+		king_kram_write_buffer32(screen->data, screenSize);
+		//king_kram_write_buffer_memmap(screen->data, screenSize);
+		//king_kram_write_buffer_memmap32(screen->data, screenSize);
+		//king_kram_write_buffer_bitcopy(screen->data, screenSize);
 	}
 }

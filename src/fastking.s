@@ -1,4 +1,8 @@
 .global _king_kram_write_buffer
+.global _king_kram_write_buffer32
+.global _king_kram_write_buffer_memmap
+.global _king_kram_write_buffer_memmap32
+.global _king_kram_write_buffer_bitcopy
 .global _king_kram_write_buffer_bytes
 
 .macro	set_rrg	reg
@@ -9,6 +13,7 @@
 	movea	\reg, r0, \tmp
 	set_rrg	\tmp
 .endm
+
 
 _king_kram_write_buffer:
 	set_reg	0xE, r10
@@ -38,6 +43,109 @@ _king_kram_write_buffer:
 
 	cmp	r7,r6
 	bl	1b
+	jmp	[lp]
+	
+_king_kram_write_buffer32:
+	set_reg	0xE, r10
+	add r6,r7
+1:
+	ld.w	0[r6],r8
+	out.w	r8, 0x604[r0]
+
+	ld.w	4[r6],r8
+	out.w	r8, 0x604[r0]
+
+	ld.w	8[r6],r8
+	out.w	r8, 0x604[r0]
+
+	ld.w	12[r6],r8
+	out.w	r8, 0x604[r0]
+
+	addi 16,r6,r6
+
+	cmp	r7,r6
+	bl	1b
+	jmp	[lp]
+
+_king_kram_write_buffer_memmap:
+	set_reg	0xE, r10
+	add r6,r7
+	movhi 0xBC00,r0,r9
+1:
+	ld.w	0[r6],r8
+	st.h	r8,0[r9]
+	shr 16, r8
+	st.h	r8,0[r9]
+
+	ld.w	4[r6],r8
+	st.h	r8,0[r9]
+	shr 16, r8
+	st.h	r8,0[r9]
+
+	ld.w	8[r6],r8
+	st.h	r8,0[r9]
+	shr 16, r8
+	st.h	r8,0[r9]
+
+	ld.w	12[r6],r8
+	st.h	r8,0[r9]
+	shr 16, r8
+	st.h	r8,0[r9]
+
+	addi 16,r6,r6
+
+	cmp	r7,r6
+	bl	1b
+	jmp	[lp]
+
+
+_king_kram_write_buffer_memmap32:
+	set_reg	0xE, r10
+	add r6,r7
+	movhi 0xBC00,r0,r9
+1:
+	ld.w	0[r6],r8
+	st.w	r8,0[r9]
+
+	ld.w	4[r6],r8
+	st.w	r8,0[r9]
+
+	ld.w	8[r6],r8
+	st.w	r8,0[r9]
+
+	ld.w	12[r6],r8
+	st.w	r8,0[r9]
+
+	addi 16,r6,r6
+
+	cmp	r7,r6
+	bl	1b
+	jmp	[lp]
+
+
+_king_kram_write_buffer_bitcopy:
+	addi -32, sp, sp
+	st.w r26, 0[sp]
+	st.w r27, 4[sp]
+	st.w r28, 8[sp]
+	st.w r29, 12[sp]
+
+	set_reg	0xE, r10
+	movhi 0xBC00,r0,r29
+
+	mov r6,r30
+	shl 3,r7
+	mov r7,r28
+	mov r0,r26
+	mov r0,r27
+	movbsu
+
+	ld.w 0[sp], r26
+	ld.w 4[sp], r27
+	ld.w 8[sp], r28
+	ld.w 12[sp], r29
+	addi 32, sp, sp
+
 	jmp	[lp]
 
 
