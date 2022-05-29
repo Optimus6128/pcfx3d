@@ -30,6 +30,7 @@ static Object3D *softObj;
 static int renderSoftMethodIndex = RENDER_SOFT_METHOD_GOURAUD;
 
 static bool autoRot = true;
+static bool renderStuff = true;
 
 
 static Object3D *initMeshObject(int meshgenId, const MeshgenParams params, int optionsFlags, Texture *tex)
@@ -142,8 +143,20 @@ static void inputScript()
 		zoom -= zoomVel;
 	}
 
+	if (isJoyButtonPressedOnce(JOY_C)) {
+		if (softObj==softCubeObj) {
+			softObj = softColumnoidObj;
+		} else {
+			softObj = softCubeObj;
+		}
+	}
+
 	if (isJoyButtonPressedOnce(JOY_F)) {
 		autoRot = !autoRot;
+	}
+	
+	if (isJoyButtonPressedOnce(JOY_SELECT)) {
+		renderStuff = !renderStuff;
 	}
 
 	if (isJoyButtonPressedOnce(JOY_START)) {
@@ -172,7 +185,9 @@ void scriptRun(Screen *screen, int t)
 	updateInput();
 	inputScript();
 
-	setObject3Dpos(softObj, 0, 0, zoom);
-	setObject3Drot(softObj, rotX, rotY, rotZ);
-	renderObject3D(softObj, screen);
+	if (renderStuff) {
+		setObject3Dpos(softObj, 0, 0, zoom);
+		setObject3Drot(softObj, rotX, rotY, rotZ);
+		renderObject3D(softObj, screen);
+	}
 }
