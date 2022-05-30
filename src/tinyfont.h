@@ -10,5 +10,6 @@
 
 void initTinyFonts();
 void drawNumber(int posX, int posY, int number, Screen *screen);
+void drawNumberDirect(int posX, int posY, int number, Screen *screen);
 
 #endif

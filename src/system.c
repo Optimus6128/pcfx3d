@@ -121,10 +121,12 @@ Screen *initDisplay(int width, int height, int bpp)
 	microprog[1] = KING_CODE_BG0_CG_1;
 	microprog[2] = KING_CODE_BG0_CG_2;
 	microprog[3] = KING_CODE_BG0_CG_3;
-	microprog[4] = KING_CODE_BG0_CG_4;
-	microprog[5] = KING_CODE_BG0_CG_5;
-	microprog[6] = KING_CODE_BG0_CG_6;
-	microprog[7] = KING_CODE_BG0_CG_7;	
+	if (bpp > 8) {
+		microprog[4] = KING_CODE_BG0_CG_4;
+		microprog[5] = KING_CODE_BG0_CG_5;
+		microprog[6] = KING_CODE_BG0_CG_6;
+		microprog[7] = KING_CODE_BG0_CG_7;
+	}
 
 	eris_king_disable_microprogram();
 	eris_king_write_microprogram(microprog, 0, 16);
@@ -150,7 +152,7 @@ Screen *initDisplay(int width, int height, int bpp)
 
 int displayMethod = 0;
 
-void writeDisplay(Screen *screen)
+/*void writeDisplay(Screen *screen)
 {
 	const int screenSize = (screen->width * screen->height * screen->bpp) >> 3;
 
@@ -181,4 +183,4 @@ void writeDisplay(Screen *screen)
 			break;
 		}
 	}
-}
+}*/

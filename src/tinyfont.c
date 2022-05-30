@@ -2,6 +2,8 @@
 #include <stdlib.h>
 
 #include "tinyfont.h"
+#include "fastking.h"
+#include "tools.h"
 #include "main.h"
 
 /*
@@ -90,4 +92,39 @@ void drawNumber(int posX, int posY, int number, Screen *screen)
 			drawFont16(px, posY, c, screen);
 		}
     }
+}
+
+// TOTAL HACK FOR NOW TO DISPLAY FPS PROPERLY.
+// Soft renderer will directly blit subrectangle of object to screen without touching framebuffer.
+// So we also do this for fps counter just to check performance, ugly hack..
+void drawNumberDirect(int posX, int posY, int number, Screen *screen)
+{
+	int y;
+	uint32 pixelStart;
+	const int bytesPerPixel = screen->bpp >> 3;
+	const int pixelShift16 = (2 - bytesPerPixel);
+	const int screenWidth = screen->width;
+	const int screenWidth16 = screen->width >> pixelShift16;
+	const int srcStride = screenWidth * bytesPerPixel;
+	uint8 *src = (uint8*)screen->data + posY*srcStride + ((posX&~3) * bytesPerPixel);
+
+	drawNumber(posX, posY, number, screen);
+	
+	pixelStart = posY * screenWidth16 + (posX >> pixelShift16);
+
+	// ABSOLUTE HACK FOR NOW
+	for (y=0; y<TINY_FONT_HEIGHT; ++y) {
+		const int hackSize = TINY_FONT_WIDTH * 4 * bytesPerPixel;
+		eris_king_set_kram_write(pixelStart, 1);
+
+		if (screen->bpp==8) {
+			king_kram_write_line32_bytes(src, hackSize);
+		} else {
+			king_kram_write_line32(src, hackSize);
+		}
+
+		myMemset(src, 0, hackSize);
+		src += srcStride;
+		pixelStart += screenWidth16;
+	}
 }

@@ -1,6 +1,7 @@
 #include "main.h"
 #include "tools.h"
 #include "bitstest.h"
+#include "fastking.h"
 
 #include "engine_main.h"
 #include "engine_mesh.h"
@@ -1037,7 +1038,7 @@ static void renderMeshSoft(Mesh *ms, ScreenElement *elements, Screen *screen)
 	}
 }
 
-static void renderSoftBufferToScreen(Screen *screen)
+/*static void renderSoftBufferToScreen(Screen *screen)
 {
 	int y;
 	const int bytesPerPixel = screen->bpp >> 3;
@@ -1054,6 +1055,33 @@ static void renderSoftBufferToScreen(Screen *screen)
 		//mem_cpy(dst, src, srcStride);
 		src += srcStride;
 		dst += screenStride;
+	}
+}*/
+
+static void renderSoftBufferToScreenDirectly(Screen *screen)
+{
+	int y;
+	const int bytesPerPixel = screen->bpp >> 3;
+	const int pixelShift16 = (2 - bytesPerPixel);
+	const int srcWidth = softBuffer.width;
+	const int srcHeight = softBuffer.height;
+	const int srcStride = srcWidth * bytesPerPixel;
+	const int screenWidth16 = screen->width >> pixelShift16;
+
+	uint8 *src = (uint8*)softBuffer.data;
+	uint32 pixelStart = softBuffer.posY * screenWidth16 + (softBuffer.posX >> pixelShift16);
+
+	for (y=0; y<srcHeight; ++y) {
+		eris_king_set_kram_write(pixelStart, 1);
+
+		if (screen->bpp==8) {
+			king_kram_write_line32_bytes(src, srcStride);
+		} else {
+			king_kram_write_line32(src, srcStride);
+		}
+
+		src += srcStride;
+		pixelStart += screenWidth16;
 	}
 }
 
@@ -1082,7 +1110,8 @@ void renderTransformedMeshSoft(Mesh *ms, ScreenElement *elements, Screen *screen
 	} else {
 		renderMeshSoft(ms, elements, screen);
 	}
-	renderSoftBufferToScreen(screen);
+	//renderSoftBufferToScreen(screen);
+	renderSoftBufferToScreenDirectly(screen);
 }
 
 void setRenderSoftMethod(int method)

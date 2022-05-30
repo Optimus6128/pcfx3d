@@ -29,9 +29,9 @@ int main()
 	for(;;) {
 		scriptRun(screen, nframe);
 
-		drawNumber(8,16, getFps(), screen);
+		drawNumberDirect(16,24, getFps(), screen);
 
-		writeDisplay(screen);
+		//writeDisplay(screen);
 
 		++nframe;
 	}

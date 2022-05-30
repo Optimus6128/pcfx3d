@@ -21,7 +21,7 @@ static int rotX=0, rotY=0, rotZ=0;
 static int zoom=256;
 
 static const int rotVel = 2;
-static const int zoomVel = 2;
+static const int zoomVel = 8;
 
 static Texture *cloudTex8;
 static Texture *cloudTex16;
@@ -106,12 +106,6 @@ static void effectMeshSoftInit(int bpp)
 
 static void inputScript()
 {
-	if (autoRot) {
-		rotX+=1;
-		rotY+=2;
-		rotZ+=3;
-	}
-
 	if (isJoyButtonPressed(JOY_LEFT)) {
 		rotY -= rotVel;
 	}
@@ -183,11 +177,22 @@ void scriptRun(Screen *screen, int t)
 	updateInput();
 	inputScript();
 
+	if (screen->bpp != 16 && renderSoftMethodIndex==RENDER_SOFT_METHOD_WIREFRAME) {
+		renderSoftMethodIndex = RENDER_SOFT_METHOD_GOURAUD;
+		setRenderSoftMethod(renderSoftMethodIndex);
+	}
+
+	if (autoRot) {
+		rotX+=1;
+		rotY+=2;
+		rotZ+=3;
+	}
+
 	if (renderStuff) {
 		setObject3Dpos(softObj, 0, 0, zoom);
 		setObject3Drot(softObj, rotX, rotY, rotZ);
 		renderObject3D(softObj, screen);
 	}
 
-	drawNumber(224,16, displayMethod, screen);
+	if (screen->bpp > 8) drawNumber(224,24, displayMethod, screen);
 }
