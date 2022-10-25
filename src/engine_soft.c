@@ -454,51 +454,23 @@ static void fillGouraudEdges16(int y0, int y1)
 	Edge *le = &leftEdge[y0];
 	Edge *re = &rightEdge[y0];
 	do {
-		const int xl = le->x;
+		const int xl = le->x & ~1;
 		const int cl = le->c;
 		const int cr = re->c;
-		int length = re->x - xl;
+		int length = (re->x - xl) >> 1;
 		uint16 *dst = dst16 + xl;
-		uint32 *dst32;
+		uint32 *dst32 = (uint32*)dst;
 
 		const int repDiv = divTab[length + DIV_TAB_SIZE / 2];
-		const int dc = ((cr - cl) * repDiv) >> DIV_TAB_SHIFT;
+		const int dc = (((cr - cl) * repDiv) >> DIV_TAB_SHIFT);
 		int fc = cl;
 
-		if (length>0){
-			if (xl & 1) {
-				int c = FIXED_TO_INT(fc, FP_BASE);
-				fc += dc;
+		while(length-- > 0) {
+			const int c = FIXED_TO_INT(fc, FP_BASE);
+			fc += dc;
 
-				*dst++ = activeGradient[c];
-				length--;
-			}
-
-			dst32 = (uint32*)dst;
-			while(length >= 2) {
-				int c0, c1;
-
-				c0 = FIXED_TO_INT(fc, FP_BASE);
-				fc += dc;
-				c1 = FIXED_TO_INT(fc, FP_BASE);
-				fc += dc;
-
-				#ifdef BIG_ENDIAN
-					*dst32++ = (activeGradient[c0] << 16) | activeGradient[c1];
-				#else
-					*dst32++ = (activeGradient[c1] << 16) | activeGradient[c0];
-				#endif
-				length -= 2;
-			};
-
-			dst = (uint16*)dst32;
-			if (length & 1) {
-				int c = FIXED_TO_INT(fc, FP_BASE);
-				fc += dc;
-
-				*dst++ = activeGradient[c];
-			}
-		}
+			*dst32++ = activeGradient[c];
+		};
 
 		++le;
 		++re;
@@ -598,57 +570,30 @@ static void fillEnvmapEdges16(int y0, int y1)
 	uint16* texData = (uint16*)activeTexture->bitmap;
 
 	do {
-		const int xl = le->x;
+		const int xl = le->x & ~1;
 		const int ul = le->u;
 		const int ur = re->u;
 		const int vl = le->v;
 		const int vr = re->v;
-		int length = re->x - xl;
+		int length = (re->x - xl) >> 1;
 
 		if (length>0){
 			uint16 *dst = dst16 + xl;
-			uint32 *dst32;
+			uint32 *dst32 = (uint32*)dst;
 
 			const int repDiv = divTab[length + DIV_TAB_SIZE / 2];
 			const int du = ((ur - ul) * repDiv) >> DIV_TAB_SHIFT;
 			const int dv = ((vr - vl) * repDiv) >> DIV_TAB_SHIFT;
 			int fu = ul;
 			int fv = vl;
-			
-			if (xl & 1) {
-				*dst++ = texData[(FIXED_TO_INT(fv, FP_BASE) << texHeightShift) + FIXED_TO_INT(fu, FP_BASE)];
+
+			while(length-- > 0) {
+				const int c = texData[(FIXED_TO_INT(fv, FP_BASE) << texHeightShift) + FIXED_TO_INT(fu, FP_BASE)];
 				fu += du;
 				fv += dv;
 
-				length--;
-			}
-
-			dst32 = (uint32*)dst;
-			while(length >= 2) {
-				int c0, c1;
-
-				c0 = texData[(FIXED_TO_INT(fv, FP_BASE) << texHeightShift) + FIXED_TO_INT(fu, FP_BASE)];
-				fu += du;
-				fv += dv;
-
-				c1 = texData[(FIXED_TO_INT(fv, FP_BASE) << texHeightShift) + FIXED_TO_INT(fu, FP_BASE)];
-				fu += du;
-				fv += dv;
-
-				#ifdef BIG_ENDIAN
-					*dst32++ = (c0 << 16) | c1;
-				#else
-					*dst32++ = (c1 << 16) | c0;
-				#endif
-				length -= 2;
+				*dst32++ = c;
 			};
-
-			dst = (uint16*)dst32;
-			if (length != 0) {
-				*dst++ = texData[(FIXED_TO_INT(fv, FP_BASE) << texHeightShift) + FIXED_TO_INT(fu, FP_BASE)];
-				fu += du;
-				fv += dv;
-			}
 		}
 
 		++le;
@@ -762,21 +707,20 @@ static void fillGouraudEnvmapEdges16(int y0, int y1)
 
 	const int texHeightShift = activeTexture->hShift;
 	uint16* texData = (uint16*)activeTexture->bitmap;
-	int Y;
 
 	do {
-		const int xl = le->x;
+		const int xl = le->x & ~1;
 		const int cl = le->c;
 		const int cr = re->c;
 		const int ul = le->u;
 		const int ur = re->u;
 		const int vl = le->v;
 		const int vr = re->v;
-		int length = re->x - xl;
+		int length = (re->x - xl) >> 1;
 
 		if (length>0){
 			uint16 *dst = dst16 + xl;
-			uint32 *dst32;
+			uint32 *dst32 = (uint32*)dst;
 
 			const int repDiv = divTab[length + DIV_TAB_SIZE / 2];
 			const int dc = ((cr - cl) * repDiv) >> DIV_TAB_SHIFT;
@@ -786,59 +730,17 @@ static void fillGouraudEnvmapEdges16(int y0, int y1)
 			int fu = ul;
 			int fv = vl;
 
-			int c, cc;
-			if (xl & 1) {
-				c = FIXED_TO_INT(fc, FP_BASE);
-				cc = texData[(FIXED_TO_INT(fv, FP_BASE) << texHeightShift) + FIXED_TO_INT(fu, FP_BASE)];
-				//Y = ((cc >> 8) * c) >> COLOR_ENVMAP_SHR;
-				Y = (cc * c) >> COLOR_ENVMAP_SHR;
-				*dst++ = (cc & 0x00FF) | (Y & 0xFF00);
+			while(length-- > 0) {
+				const int cTex = texData[(FIXED_TO_INT(fv, FP_BASE) << texHeightShift) + FIXED_TO_INT(fu, FP_BASE)];
+				const int Y = (cTex * FIXED_TO_INT(fc, FP_BASE)) >> COLOR_ENVMAP_SHR;
+				const int c = (cTex & 0x00FF) | (Y & 0xFF00);
+
 				fc += dc;
 				fu += du;
 				fv += dv;
 
-				length--;
-			}
-
-			dst32 = (uint32*)dst;
-			while(length >= 2) {
-				int c0, c1;
-
-				c = FIXED_TO_INT(fc, FP_BASE);
-				cc = texData[(FIXED_TO_INT(fv, FP_BASE) << texHeightShift) + FIXED_TO_INT(fu, FP_BASE)];
-				Y = (cc * c) >> COLOR_ENVMAP_SHR;
-				c0 = (cc & 0x00FF) | (Y & 0xFF00);
-				fc += dc;
-				fu += du;
-				fv += dv;
-
-				c = FIXED_TO_INT(fc, FP_BASE);
-				cc = texData[(FIXED_TO_INT(fv, FP_BASE) << texHeightShift) + FIXED_TO_INT(fu, FP_BASE)];
-				Y = (cc * c) >> COLOR_ENVMAP_SHR;
-				c1 = (cc & 0x00FF) | (Y & 0xFF00);
-				fc += dc;
-				fu += du;
-				fv += dv;
-
-				#ifdef BIG_ENDIAN
-					*dst32++ = (c0 << 16) | c1;
-				#else
-					*dst32++ = (c1 << 16) | c0;
-				#endif
-
-				length -= 2;
+				*dst32++ = c;
 			};
-
-			dst = (uint16*)dst32;
-			if (length & 1) {
-				c = FIXED_TO_INT(fc, FP_BASE);
-				cc = texData[(FIXED_TO_INT(fv, FP_BASE) << texHeightShift) + FIXED_TO_INT(fu, FP_BASE)];
-				Y = (cc * c) >> COLOR_ENVMAP_SHR;
-				*dst++ = (cc & 0x00FF) | (Y & 0xFF00);
-				fc += dc;
-				fu += du;
-				fv += dv;
-			}
 		}
 
 		++le;

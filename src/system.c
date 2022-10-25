@@ -118,14 +118,14 @@ Screen *initDisplay(int width, int height, int bpp)
 		microprog[i] = KING_CODE_NOP;
 	}
 	microprog[0] = KING_CODE_BG0_CG_0;
-	microprog[1] = KING_CODE_BG0_CG_1;
+	microprog[1] = KING_CODE_BG0_CG_0;
 	microprog[2] = KING_CODE_BG0_CG_2;
-	microprog[3] = KING_CODE_BG0_CG_3;
+	microprog[3] = KING_CODE_BG0_CG_2;
 	if (bpp > 8) {
 		microprog[4] = KING_CODE_BG0_CG_4;
-		microprog[5] = KING_CODE_BG0_CG_5;
+		microprog[5] = KING_CODE_BG0_CG_4;
 		microprog[6] = KING_CODE_BG0_CG_6;
-		microprog[7] = KING_CODE_BG0_CG_7;
+		microprog[7] = KING_CODE_BG0_CG_6;
 	}
 
 	eris_king_disable_microprogram();

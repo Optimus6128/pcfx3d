@@ -49,14 +49,16 @@ void initTinyFonts()
 
 static void drawFont16(int posX, int posY, uint8 decimal, Screen *screen)
 {
+	// Hacked for the duplicated pixel 16bit mode
+
 	int x, y;
 	const int width = screen->width;
     uint16 *fontData = &miniDecimalFonts[decimal * TINY_FONT_WIDTH * TINY_FONT_HEIGHT];
-	uint16 *dst = (uint16*)screen->data + posY * width + posX;
+	uint16 *dst = (uint16*)screen->data + posY * width + 2*posX;
 
     for (y = 0; y<TINY_FONT_HEIGHT; y++) {
-		for (x = 0; x<TINY_FONT_WIDTH; ++x) {
-			*(dst+x) = *fontData++;
+		for (x = 0; x<TINY_FONT_WIDTH; x++) {
+			*(dst+2*x) = *fontData++;
 		}
 		dst += width;
     }
@@ -119,11 +121,13 @@ void drawNumberDirect(int posX, int posY, int number, Screen *screen)
 
 		if (screen->bpp==8) {
 			king_kram_write_line32_bytes(src, hackSize);
+			myMemset(src, 0, hackSize);
 		} else {
-			king_kram_write_line32(src, hackSize);
+			// Double for the duplicated pixel 16bit mode
+			king_kram_write_line32(src, 4 * hackSize);
+			myMemset(src, 0, 4 * hackSize);
 		}
 
-		myMemset(src, 0, hackSize);
 		src += srcStride;
 		pixelStart += screenWidth16;
 	}
