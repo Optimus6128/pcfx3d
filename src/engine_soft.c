@@ -974,12 +974,12 @@ static void renderSoftBufferToScreenDirectly(Screen *screen)
 	uint32 pixelStart = softBuffer.posY * screenWidth16 + (softBuffer.posX >> pixelShift16);
 
 	for (y=0; y<srcHeight; ++y) {
-		eris_king_set_kram_write(pixelStart, 1);
-
 		if (screen->bpp==8) {
+			eris_king_set_kram_write(pixelStart, 1);
 			king_kram_write_line32_bytes(src, srcStride);
 		} else {
-			king_kram_write_line32(src, srcStride);
+			eris_king_set_kram_write(pixelStart, 2);
+			king_kram_write_line32_half(src, srcStride);
 		}
 
 		src += srcStride;

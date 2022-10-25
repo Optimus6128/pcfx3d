@@ -6,6 +6,7 @@
 .global _king_kram_write_buffer_bytes
 
 .global _king_kram_write_line32
+.global _king_kram_write_line32_half
 .global _king_kram_write_line32_bytes
 
 .macro	set_rrg	reg
@@ -221,6 +222,18 @@ _king_kram_write_line32:
 1:
 	ld.w	0[r6],r8
 	out.w	r8, 0x604[r0]
+
+	addi 4,r6,r6
+	cmp	r7,r6
+	bl	1b
+	jmp	[lp]
+
+_king_kram_write_line32_half:
+	set_reg	0xE, r10
+	add r6,r7
+1:
+	ld.h	0[r6],r8
+	out.h	r8, 0x604[r0]
 
 	addi 4,r6,r6
 	cmp	r7,r6
