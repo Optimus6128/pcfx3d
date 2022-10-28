@@ -9,6 +9,7 @@ void king_kram_write_buffer_bitcopy(void* addr, int size);
 void king_kram_write_buffer_bytes(void* addr, int size);
 
 void king_kram_write_line32(void* addr, int size);
+void king_kram_write_line32_half(void* addr, int size);
 void king_kram_write_line32_bytes(void* addr, int size);
 
 #endif

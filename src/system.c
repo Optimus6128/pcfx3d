@@ -117,15 +117,21 @@ Screen *initDisplay(int width, int height, int bpp)
 	for(i = 0; i < 16; i++) {
 		microprog[i] = KING_CODE_NOP;
 	}
-	microprog[0] = KING_CODE_BG0_CG_0;
-	microprog[1] = KING_CODE_BG0_CG_0;
-	microprog[2] = KING_CODE_BG0_CG_2;
-	microprog[3] = KING_CODE_BG0_CG_2;
-	if (bpp > 8) {
+
+	if (bpp==16) {
+		microprog[0] = KING_CODE_BG0_CG_0;
+		microprog[1] = KING_CODE_BG0_CG_0;
+		microprog[2] = KING_CODE_BG0_CG_2;
+		microprog[3] = KING_CODE_BG0_CG_2;
 		microprog[4] = KING_CODE_BG0_CG_4;
 		microprog[5] = KING_CODE_BG0_CG_4;
 		microprog[6] = KING_CODE_BG0_CG_6;
 		microprog[7] = KING_CODE_BG0_CG_6;
+	} else {
+		microprog[0] = KING_CODE_BG0_CG_0;
+		microprog[1] = KING_CODE_BG0_CG_1;
+		microprog[2] = KING_CODE_BG0_CG_2;
+		microprog[3] = KING_CODE_BG0_CG_3;
 	}
 
 	eris_king_disable_microprogram();
@@ -152,7 +158,7 @@ Screen *initDisplay(int width, int height, int bpp)
 
 int displayMethod = 0;
 
-/*void writeDisplay(Screen *screen)
+void writeDisplay(Screen *screen)
 {
 	const int screenSize = (screen->width * screen->height * screen->bpp) >> 3;
 
@@ -183,4 +189,4 @@ int displayMethod = 0;
 			break;
 		}
 	}
-}*/
+}

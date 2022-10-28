@@ -1,5 +1,6 @@
 #include "main.h"
 #include "script.h"
+#include "fx_script.h"
 
 #include "system.h"
 #include "input.h"
@@ -14,14 +15,8 @@ int nframe = 0;
 
 Screen *screen;
 
-int main()
+static void main3D()
 {
-	screen = initDisplay(SCREEN_WIDTH, SCREEN_HEIGHT, 16);
-
-	initTimer();
-	initInput();
-	initTinyFonts();
-
 	initEngine(screen);
 
 	scriptInit(screen);
@@ -35,6 +30,34 @@ int main()
 
 		++nframe;
 	}
+}
+
+
+static void mainFX()
+{
+	fxScriptInit(screen);
+
+	for(;;) {
+		fxScriptRun(screen, nframe);
+
+		drawNumberDirect(16,192, getFps(), screen);
+
+		writeDisplay(screen);
+
+		++nframe;
+	}
+}
+
+int main()
+{
+	screen = initDisplay(SCREEN_WIDTH, SCREEN_HEIGHT, 8);
+
+	initTimer();
+	initInput();
+	initTinyFonts();
+
+	//main3D();
+	mainFX();
 
 	return 0;
 }
